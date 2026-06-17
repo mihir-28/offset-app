@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../context/auth-context";
 import { Sidebar, BottomNav } from "./navigation";
 import { PwaRegister } from "./pwa-register";
+import { BrandMark } from "./brand-mark";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -26,9 +27,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-[#09090B] text-white">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/30 shadow-2xl shadow-blue-500/5 animate-pulse">
-            <span className="text-3xl font-extrabold text-blue-400">O</span>
-          </div>
+          <BrandMark className="h-16 w-16 animate-pulse rounded-2xl border-blue-400/20 shadow-2xl shadow-blue-950/30" />
           <h1 className="text-xl font-bold tracking-wider text-zinc-200">OFFSET</h1>
           <p className="text-xs text-zinc-500">Track liabilities, effortlessly.</p>
         </div>

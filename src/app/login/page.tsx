@@ -5,6 +5,7 @@ import { useAuth } from "../../context/auth-context";
 import { Button } from "../../components/ui/button";
 import { ShieldAlert } from "lucide-react";
 import { isConfigValid } from "../../lib/firebase";
+import { BrandMark } from "../../components/brand-mark";
 
 export default function LoginPage() {
   const { loginWithGoogle } = useAuth();
@@ -32,10 +33,10 @@ export default function LoginPage() {
       
       <div className="w-full max-w-sm z-10">
         <div className="text-center mb-8 flex flex-col items-center">
-          {/* Logo Icon */}
-          <div className="h-16 w-16 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-2xl mb-4">
-            <span className="text-3xl font-extrabold text-blue-400">O</span>
-          </div>
+          <BrandMark
+            priority
+            className="mb-4 h-18 w-18 rounded-2xl border-blue-400/20 shadow-2xl shadow-blue-950/30"
+          />
           <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Offset</h1>
           <p className="text-zinc-400 text-sm">
             Track your card liabilities effortlessly.
@@ -50,7 +51,7 @@ export default function LoginPage() {
                 <span>Firebase Keys Missing</span>
               </div>
               <span className="text-zinc-400 leading-normal">
-                Please copy <code className="text-zinc-200 bg-zinc-800 px-0.5 rounded">.env.example</code> to <code className="text-zinc-200 bg-zinc-800 px-0.5 rounded">.env.local</code> and populate it with your Firebase Console web app credentials.
+                Firebase client variables were not available when this build started. On Netlify, confirm every <code className="text-zinc-200 bg-zinc-800 px-0.5 rounded">NEXT_PUBLIC_FIREBASE_*</code> variable is set for Production and redeploy the site.
               </span>
             </div>
           )}

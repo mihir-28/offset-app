@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "Offset",
   description: "Track credit card liabilities effortlessly between Home and Mine.",
   manifest: "/site.webmanifest",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

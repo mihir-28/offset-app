@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, CreditCard, History, User } from "lucide-react";
 import { cn } from "../lib/utils";
+import { BrandMark } from "./brand-mark";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -18,9 +19,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex flex-col w-64 border-r border-zinc-800 bg-[#111113] p-6 text-zinc-400">
       <div className="mb-8 flex items-center gap-3">
-        <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-lg">
-          O
-        </div>
+        <BrandMark className="h-8 w-8 rounded-lg border-blue-400/20 shadow-none" />
         <span className="text-xl font-bold tracking-tight text-white">Offset</span>
       </div>
 
