@@ -181,9 +181,12 @@ export default function AddTransactionPage() {
   if (loadingTx) {
     return (
       <div className="flex h-[50vh] items-center justify-center text-zinc-400">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-          <p className="text-xs tracking-wider uppercase">Loading Transaction...</p>
+        <div className="flex flex-col items-center">
+          <div className="relative w-12 h-12 mb-3">
+            <div className="absolute inset-0 rounded-full border-2 border-blue-500/20 border-t-blue-500 animate-spin"></div>
+            <div className="absolute inset-1 rounded-full border-2 border-purple-500/15 border-b-purple-400 animate-spin duration-1000"></div>
+          </div>
+          <p className="text-xs tracking-widest text-zinc-400 font-sans uppercase animate-pulse">Loading Transaction...</p>
         </div>
       </div>
     );

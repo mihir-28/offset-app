@@ -28,10 +28,14 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   // Loading / Splash Screen
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#09090B] text-white">
-        <div className="relative w-20 h-20 mb-4 flex flex-col items-center justify-center">
-          <BrandMark className="h-16 w-16 animate-pulse rounded-2xl border-blue-400/20 shadow-2xl shadow-blue-950/30" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#09090B] text-zinc-100">
+        <div className="relative w-20 h-20 mb-4">
+          <div className="absolute inset-0 rounded-full border-4 border-blue-500/20 border-t-blue-500 animate-spin"></div>
+          <div className="absolute inset-2 rounded-full border-4 border-purple-500/15 border-b-purple-400 animate-spin duration-1000"></div>
         </div>
+        <p className="text-xs tracking-widest text-zinc-400 font-sans uppercase animate-pulse">
+          Loading Offset...
+        </p>
       </div>
     );
   }
