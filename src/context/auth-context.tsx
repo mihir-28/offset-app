@@ -17,6 +17,8 @@ export interface UserProfile {
   name: string;
   photoURL: string;
   createdAt?: Timestamp;
+  buckets?: string[];
+  cycleStartDay?: number;
 }
 
 interface AuthContextType {
@@ -25,6 +27,8 @@ interface AuthContextType {
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  updateBuckets: (newBuckets: string[]) => Promise<void>;
+  updateCycleStartDay: (day: number) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,20 +62,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           // Attempt to get user first. If offline, this might get from cache or fail.
           const docSnap = await getDoc(userDocRef);
-          if (!docSnap.exists()) {
-            await setDoc(userDocRef, {
-              ...userProfile,
-              createdAt: serverTimestamp(),
-            }, { merge: true });
-          } else {
+          let dbBuckets = ["HOME", "MINE"];
+          let dbCycleStartDay = 17;
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.buckets && Array.isArray(data.buckets)) {
+              dbBuckets = data.buckets;
+            }
+            if (typeof data.cycleStartDay === "number") {
+              dbCycleStartDay = data.cycleStartDay;
+            }
             // Update photo/name if changed
             await setDoc(userDocRef, userProfile, { merge: true });
+          } else {
+            await setDoc(userDocRef, {
+              ...userProfile,
+              buckets: dbBuckets,
+              cycleStartDay: dbCycleStartDay,
+              createdAt: serverTimestamp(),
+            }, { merge: true });
           }
-          setProfile(userProfile);
+
+          setProfile({
+            ...userProfile,
+            buckets: dbBuckets,
+            cycleStartDay: dbCycleStartDay,
+          });
         } catch (error) {
           console.error("Firestore user profile sync error (may be offline):", error);
           // Fallback to local profile info so offline works
-          setProfile(userProfile);
+          setProfile({
+            ...userProfile,
+            buckets: ["HOME", "MINE"],
+            cycleStartDay: 17,
+          });
         }
       } else {
         setProfile(null);
@@ -105,8 +130,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateBuckets = async (newBuckets: string[]) => {
+    if (!user) return;
+    const userDocRef = doc(db, "users", user.uid);
+    await setDoc(userDocRef, { buckets: newBuckets }, { merge: true });
+    setProfile((prev) => prev ? { ...prev, buckets: newBuckets } : null);
+  };
+
+  const updateCycleStartDay = async (day: number) => {
+    if (!user) return;
+    const userDocRef = doc(db, "users", user.uid);
+    await setDoc(userDocRef, { cycleStartDay: day }, { merge: true });
+    setProfile((prev) => prev ? { ...prev, cycleStartDay: day } : null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, loginWithGoogle, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        loginWithGoogle,
+        logout,
+        updateBuckets,
+        updateCycleStartDay,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

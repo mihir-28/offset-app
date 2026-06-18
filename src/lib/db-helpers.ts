@@ -5,9 +5,12 @@ import {
   addDoc,
   getDoc,
   updateDoc,
-  deleteDoc,
   serverTimestamp,
   Timestamp,
+  getDocs,
+  query,
+  where,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { getCycleBounds, getCycleId, getCycleTitle } from "./cycle-utils";
@@ -18,9 +21,10 @@ export interface TransactionData {
   transactionName: string;
   amount: number;
   deposit: number;
-  owner: "HOME" | "MINE";
+  owner: string;
   transactionDate: Date;
   cycleId: string;
+  deleted?: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -40,8 +44,8 @@ export interface StatementCycleData {
  * Gets or creates a statement cycle for a given date in Firestore.
  * Must run inside a transaction or separately.
  */
-export async function getOrCreateCycle(userId: string, date: Date): Promise<string> {
-  const { startDate, endDate } = getCycleBounds(date);
+export async function getOrCreateCycle(userId: string, date: Date, cycleStartDay?: number): Promise<string> {
+  const { startDate, endDate } = getCycleBounds(date, cycleStartDay);
   const cycleIdKey = getCycleId(startDate);
   const fullCycleId = `${userId}_${cycleIdKey}`;
   const title = getCycleTitle(startDate, endDate);
@@ -93,10 +97,11 @@ export async function getOrCreateCycle(userId: string, date: Date): Promise<stri
  */
 export async function addTransaction(
   userId: string,
-  data: Omit<TransactionData, "userId" | "cycleId">
+  data: Omit<TransactionData, "userId" | "cycleId">,
+  cycleStartDay?: number
 ): Promise<string> {
   // 1. Get or create cycle
-  const fullCycleId = await getOrCreateCycle(userId, data.transactionDate);
+  const fullCycleId = await getOrCreateCycle(userId, data.transactionDate, cycleStartDay);
 
   // 2. Check if cycle is closed
   const cycleDocRef = doc(db, "statementCycles", fullCycleId);
@@ -139,7 +144,8 @@ export async function addTransaction(
 export async function updateTransaction(
   userId: string,
   transactionId: string,
-  data: Omit<TransactionData, "userId" | "cycleId" | "id">
+  data: Omit<TransactionData, "userId" | "cycleId" | "id">,
+  cycleStartDay?: number
 ): Promise<void> {
   const txRef = doc(db, "transactions", transactionId);
   let oldCycleId: string;
@@ -155,7 +161,7 @@ export async function updateTransaction(
     const err = error as { code?: string; message?: string };
     if (err.code === "unavailable" || err.message?.includes("offline")) {
       console.warn("Firestore offline: Reading cached transaction or assuming default cycle.");
-      oldCycleId = await getOrCreateCycle(userId, data.transactionDate);
+      oldCycleId = await getOrCreateCycle(userId, data.transactionDate, cycleStartDay);
     } else {
       throw error;
     }
@@ -178,7 +184,7 @@ export async function updateTransaction(
   }
 
   // Calculate new cycle if date changed
-  const newFullCycleId = await getOrCreateCycle(userId, data.transactionDate);
+  const newFullCycleId = await getOrCreateCycle(userId, data.transactionDate, cycleStartDay);
 
   // Verify new cycle is open (if date changed)
   if (newFullCycleId !== oldCycleId) {
@@ -227,7 +233,10 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
     const err = error as { code?: string; message?: string };
     if (err.code === "unavailable" || err.message?.includes("offline")) {
       console.warn("Firestore offline: Proceeding with deletion locally.");
-      await deleteDoc(txRef);
+      await updateDoc(txRef, {
+        deleted: true,
+        updatedAt: serverTimestamp(),
+      });
       return;
     } else {
       throw error;
@@ -250,7 +259,10 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
     }
   }
 
-  await deleteDoc(txRef);
+  await updateDoc(txRef, {
+    deleted: true,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 /**
@@ -261,4 +273,49 @@ export async function closeCycle(fullCycleId: string): Promise<void> {
   await updateDoc(cycleDocRef, {
     status: "CLOSED",
   });
+}
+
+/**
+ * Recalculates and updates the cycleId for all transactions of a user after changing the billing cycle start day.
+ */
+export async function migrateTransactionsToNewCycleDay(
+  userId: string,
+  newCycleStartDay: number
+): Promise<void> {
+  const transactionsCol = collection(db, "transactions");
+  const txQuery = query(
+    transactionsCol,
+    where("userId", "==", userId)
+  );
+
+  const querySnap = await getDocs(txQuery);
+  const batch = writeBatch(db);
+  let hasChanges = false;
+
+  for (const docSnap of querySnap.docs) {
+    const data = docSnap.data();
+    if (data.deleted) continue;
+
+    // Convert transaction date
+    const txDate = data.transactionDate instanceof Timestamp
+      ? data.transactionDate.toDate()
+      : (data.transactionDate && typeof data.transactionDate === "object" && "seconds" in data.transactionDate)
+        ? new Date((data.transactionDate as { seconds: number }).seconds * 1000)
+        : new Date();
+
+    // Get new cycleId (creates statementCycle doc if needed)
+    const newCycleId = await getOrCreateCycle(userId, txDate, newCycleStartDay);
+
+    if (data.cycleId !== newCycleId) {
+      batch.update(docSnap.ref, {
+        cycleId: newCycleId,
+        updatedAt: serverTimestamp(),
+      });
+      hasChanges = true;
+    }
+  }
+
+  if (hasChanges) {
+    await batch.commit();
+  }
 }

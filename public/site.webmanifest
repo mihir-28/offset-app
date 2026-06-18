@@ -1,18 +1,47 @@
 {
-  "name": "Offset Liability Tracker",
+  "name": "Offset Card Liability Tracker",
   "short_name": "Offset",
   "description": "Track credit card liabilities between Home and Mine automatically.",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#09090B",
   "theme_color": "#09090B",
+  "orientation": "portrait-primary",
   "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Transactions",
+      "url": "/transactions",
+      "description": "View credit card transactions"
+    },
+    {
+      "name": "Statements",
+      "url": "/statements",
+      "description": "View monthly billing cycles and statements"
+    },
+    {
+      "name": "Settings",
+      "url": "/settings",
+      "description": "Manage cycle settings and session"
     }
   ]
 }

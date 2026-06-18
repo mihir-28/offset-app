@@ -14,10 +14,10 @@ const MONTH_NAMES = [
 ];
 
 /**
- * Calculates the start and end dates of the billing cycle for a given transaction date.
- * Cycle boundary: 17th of a month to 16th of the next month.
+ * Calculates the start and end dates of the billing cycle for a given transaction date and cycleStartDay.
+ * Cycle boundary: cycleStartDay of a month to cycleStartDay-1 of the next month.
  */
-export function getCycleBounds(date: Date): CycleBounds {
+export function getCycleBounds(date: Date, cycleStartDay: number = 17): CycleBounds {
   const d = new Date(date.getTime());
   const year = d.getFullYear();
   const month = d.getMonth(); // 0-indexed
@@ -26,8 +26,8 @@ export function getCycleBounds(date: Date): CycleBounds {
   let startYear = year;
   let startMonth = month;
   
-  if (day < 17) {
-    // Current date is before the 17th, so the cycle started in the previous month
+  if (day < cycleStartDay) {
+    // Current date is before the cycle start day, so the cycle started in the previous month
     startMonth = month - 1;
     if (startMonth < 0) {
       startMonth = 11;
@@ -35,17 +35,17 @@ export function getCycleBounds(date: Date): CycleBounds {
     }
   }
 
-  // Start Date: 17th of startMonth at 00:00:00.000
-  const startDate = new Date(startYear, startMonth, 17, 0, 0, 0, 0);
+  // Start Date: cycleStartDay of startMonth at 00:00:00.000
+  const startDate = new Date(startYear, startMonth, cycleStartDay, 0, 0, 0, 0);
 
-  // End Date: 16th of next month at 23:59:59.999
+  // End Date: one day before cycleStartDay of the next month at 23:59:59.999
   let endYear = startYear;
   let endMonth = startMonth + 1;
   if (endMonth > 11) {
     endMonth = 0;
     endYear = startYear + 1;
   }
-  const endDate = new Date(endYear, endMonth, 16, 23, 59, 59, 999);
+  const endDate = new Date(endYear, endMonth, cycleStartDay - 1, 23, 59, 59, 999);
 
   return { startDate, endDate };
 }

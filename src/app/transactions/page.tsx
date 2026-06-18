@@ -1,33 +1,55 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/auth-context";
 import { db } from "../../lib/firebase";
 import { getCycleBounds, getCycleId } from "../../lib/cycle-utils";
 import { deleteTransaction, TransactionData, StatementCycleData } from "../../lib/db-helpers";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { Search, Plus, Edit2, Trash2, Lock } from "lucide-react";
-import { AddTransactionSheet } from "../../components/add-transaction-sheet";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { cn } from "../../lib/utils";
 
+const getBucketColor = (bucketName: string) => {
+  const themes = [
+    { text: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", solid: "bg-blue-500" }, // 0: Blue (HOME)
+    { text: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20", solid: "bg-purple-500" }, // 1: Purple (MINE)
+    { text: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20", solid: "bg-emerald-500" }, // 2: Emerald
+    { text: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20", solid: "bg-amber-500" }, // 3: Amber
+    { text: "text-rose-400", bg: "bg-rose-400/10", border: "border-rose-400/20", solid: "bg-rose-500" }, // 4: Rose
+    { text: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/20", solid: "bg-cyan-500" }, // 5: Cyan
+  ];
+
+  const nameUpper = bucketName.toUpperCase();
+  if (nameUpper === "HOME") return themes[0];
+  if (nameUpper === "MINE") return themes[1];
+
+  let hash = 0;
+  for (let i = 0; i < bucketName.length; i++) {
+    hash = bucketName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = 2 + (Math.abs(hash) % 4); // Maps dynamically to indices 2..5
+  return themes[index];
+};
+
 export default function TransactionsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const router = useRouter();
 
   // Database State
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [cycles, setCycles] = useState<Record<string, StatementCycleData>>({});
   const [loading, setLoading] = useState(true);
 
-  // Sheets State
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [selectedTx, setSelectedTx] = useState<TransactionData | null>(null);
-
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
-  const [ownerFilter, setOwnerFilter] = useState<"ALL" | "HOME" | "MINE">("ALL");
+  const [ownerFilter, setOwnerFilter] = useState<string>("ALL");
   const [cycleFilter, setCycleFilter] = useState<"CURRENT" | "ALL">("CURRENT");
+
+  const buckets = profile?.buckets || ["HOME", "MINE"];
+  const cycleStartDay = profile?.cycleStartDay || 17;
 
   // Fetch cycles and transactions
   useEffect(() => {
@@ -75,6 +97,7 @@ export default function TransactionsPage() {
         const list: TransactionData[] = [];
         snap.forEach((doc) => {
           const data = doc.data();
+          if (data.deleted) return;
           list.push({
             id: data.id,
             userId: data.userId,
@@ -84,6 +107,7 @@ export default function TransactionsPage() {
             owner: data.owner,
             transactionDate: data.transactionDate.toDate(),
             cycleId: data.cycleId,
+            deleted: data.deleted,
           });
         });
         
@@ -105,7 +129,7 @@ export default function TransactionsPage() {
   }, [user]);
 
   // Determine current active cycle ID
-  const bounds = getCycleBounds(new Date());
+  const bounds = getCycleBounds(new Date(), cycleStartDay);
   const currentCycleIdKey = getCycleId(bounds.startDate);
   const currentFullCycleId = user ? `${user.uid}_${currentCycleIdKey}` : "";
 
@@ -149,8 +173,7 @@ export default function TransactionsPage() {
       alert("This transaction is in a closed statement cycle and is read-only.");
       return;
     }
-    setSelectedTx(tx);
-    setSheetOpen(true);
+    router.push(`/add?edit=${tx.id}`);
   };
 
   const handleDeleteClick = async (tx: TransactionData) => {
@@ -159,7 +182,7 @@ export default function TransactionsPage() {
       alert("This transaction is in a closed statement cycle and is read-only.");
       return;
     }
-    if (confirm(`Are you sure you want to delete "${tx.transactionName}"?`)) {
+    if (confirm("Are you sure you want to delete this transaction?")) {
       try {
         await deleteTransaction(tx.id!);
       } catch (err) {
@@ -170,8 +193,7 @@ export default function TransactionsPage() {
   };
 
   const handleAddNewClick = () => {
-    setSelectedTx(null);
-    setSheetOpen(true);
+    router.push("/add");
   };
 
   if (loading) {
@@ -195,7 +217,7 @@ export default function TransactionsPage() {
         </div>
         <Button
           onClick={handleAddNewClick}
-          className="bg-blue-500 hover:bg-blue-600 text-black font-semibold rounded-xl h-10 px-4"
+          className="hidden md:inline-flex bg-blue-500 hover:bg-blue-600 text-black font-semibold rounded-xl h-10 px-4"
         >
           <Plus className="h-4 w-4 mr-1.5" /> Add Transaction
         </Button>
@@ -217,21 +239,35 @@ export default function TransactionsPage() {
           </div>
 
           {/* Owner Filter */}
-          <div className="flex items-center bg-zinc-900 p-1 rounded-xl border border-zinc-800 select-none">
-            {(["ALL", "HOME", "MINE"] as const).map((opt) => (
-              <button
-                key={opt}
-                onClick={() => setOwnerFilter(opt)}
-                className={cn(
-                  "px-4 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer",
-                  ownerFilter === opt
-                    ? "bg-blue-500 text-black shadow"
-                    : "text-zinc-400 hover:text-zinc-200"
-                )}
-              >
-                {opt}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center bg-zinc-900 p-1 rounded-xl border border-zinc-800 select-none gap-1">
+            {(() => {
+              const filterOptions = ["ALL", ...buckets];
+              transactions.forEach((tx) => {
+                if (tx.owner && !filterOptions.includes(tx.owner)) {
+                  filterOptions.push(tx.owner);
+                }
+              });
+              return filterOptions.map((opt) => {
+                const isSelected = ownerFilter === opt;
+                const colors = opt === "ALL" 
+                  ? { solid: "bg-blue-500" } 
+                  : getBucketColor(opt);
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => setOwnerFilter(opt)}
+                    className={cn(
+                      "px-4 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                      isSelected
+                        ? `${colors.solid} text-black shadow`
+                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
+                    )}
+                  >
+                    {opt}
+                  </button>
+                );
+              });
+            })()}
           </div>
 
           {/* Cycle Filter */}
@@ -293,6 +329,7 @@ export default function TransactionsPage() {
             const isClosed = cycles[tx.cycleId]?.status === "CLOSED";
             const outstandingAmt = Math.max(0, tx.amount - tx.deposit);
             const cycleTitle = cycles[tx.cycleId]?.title || "Calculating Cycle...";
+            const badgeColors = getBucketColor(tx.owner);
 
             return (
               <div
@@ -309,10 +346,10 @@ export default function TransactionsPage() {
                     </span>
                     <span
                       className={cn(
-                        "text-[10px] font-bold px-1.5 py-0.5 rounded",
-                        tx.owner === "HOME"
-                          ? "bg-blue-400/10 text-blue-400 border border-blue-400/20"
-                          : "bg-purple-400/10 text-purple-400 border border-purple-400/20"
+                        "text-[10px] font-bold px-1.5 py-0.5 rounded border",
+                        badgeColors.bg,
+                        badgeColors.text,
+                        badgeColors.border
                       )}
                     >
                       {tx.owner}
@@ -386,20 +423,6 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) for Mobile / Tablet */}
-      <button
-        onClick={handleAddNewClick}
-        className="md:hidden fixed bottom-20 right-6 z-30 h-14 w-14 rounded-full bg-blue-500 hover:bg-blue-600 text-black flex items-center justify-center shadow-lg transition-transform active:scale-95 cursor-pointer"
-      >
-        <Plus className="h-6 w-6 font-bold" />
-      </button>
-
-      {/* Sheet component */}
-      <AddTransactionSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        editData={selectedTx}
-      />
     </div>
   );
 }

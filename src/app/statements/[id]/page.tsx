@@ -6,12 +6,34 @@ import { useAuth } from "../../../context/auth-context";
 import { db } from "../../../lib/firebase";
 import { closeCycle, StatementCycleData, TransactionData } from "../../../lib/db-helpers";
 import { doc, collection, query, where, onSnapshot } from "firebase/firestore";
-import { ArrowLeft, Lock, Unlock, Calendar, AlertCircle, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Lock, Unlock, Calendar, AlertCircle, ShieldCheck, ArrowUpRight, ArrowDownLeft, Receipt } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { cn } from "../../../lib/utils";
 
+const getBucketColor = (bucketName: string) => {
+  const themes = [
+    { text: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", solid: "bg-blue-500" }, // 0: Blue (HOME)
+    { text: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20", solid: "bg-purple-500" }, // 1: Purple (MINE)
+    { text: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20", solid: "bg-emerald-500" }, // 2: Emerald
+    { text: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20", solid: "bg-amber-500" }, // 3: Amber
+    { text: "text-rose-400", bg: "bg-rose-400/10", border: "border-rose-400/20", solid: "bg-rose-500" }, // 4: Rose
+    { text: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/20", solid: "bg-cyan-500" }, // 5: Cyan
+  ];
+
+  const nameUpper = bucketName.toUpperCase();
+  if (nameUpper === "HOME") return themes[0];
+  if (nameUpper === "MINE") return themes[1];
+
+  let hash = 0;
+  for (let i = 0; i < bucketName.length; i++) {
+    hash = bucketName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = 2 + (Math.abs(hash) % 4); // Maps dynamically to indices 2..5
+  return themes[index];
+};
+
 export default function StatementDetailsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { id } = useParams() as { id: string };
   const router = useRouter();
 
@@ -62,6 +84,7 @@ export default function StatementDetailsPage() {
         const list: TransactionData[] = [];
         snap.forEach((doc) => {
           const data = doc.data();
+          if (data.deleted) return;
           list.push({
             id: data.id,
             userId: data.userId,
@@ -71,6 +94,7 @@ export default function StatementDetailsPage() {
             owner: data.owner,
             transactionDate: data.transactionDate.toDate(),
             cycleId: data.cycleId,
+            deleted: data.deleted,
           });
         });
         // Sort desc by date
@@ -91,26 +115,38 @@ export default function StatementDetailsPage() {
   }, [user, id, router]);
 
   // Calculations
-  let homeTotal = 0;
-  let homeDeposits = 0;
-  let myTotal = 0;
-  let myDeposits = 0;
+  const buckets = profile?.buckets || ["HOME", "MINE"];
 
+  const displayBuckets = [...buckets];
   transactions.forEach((t) => {
-    if (t.owner === "HOME") {
-      homeTotal += t.amount;
-      homeDeposits += t.deposit;
-    } else {
-      myTotal += t.amount;
-      myDeposits += t.deposit;
+    if (t.owner && !displayBuckets.includes(t.owner)) {
+      displayBuckets.push(t.owner);
     }
   });
 
-  const homeOutstanding = homeTotal - homeDeposits;
-  const myOutstanding = myTotal - myDeposits;
+  const bucketData = displayBuckets.map((bucket) => {
+    let total = 0;
+    let deposits = 0;
+    transactions.forEach((t) => {
+      if (t.owner === bucket) {
+        total += t.amount;
+        deposits += t.deposit;
+      }
+    });
+    return {
+      name: bucket,
+      total,
+      deposits,
+      outstanding: total - deposits,
+    };
+  });
 
-  const totalSpend = homeTotal + myTotal;
-  const totalDeposits = homeDeposits + myDeposits;
+  let totalSpend = 0;
+  let totalDeposits = 0;
+  transactions.forEach((t) => {
+    totalSpend += t.amount;
+    totalDeposits += t.deposit;
+  });
   const totalOutstanding = totalSpend - totalDeposits;
 
   // Statement Locking checks
@@ -221,98 +257,81 @@ export default function StatementDetailsPage() {
         </div>
       </div>
 
-      {/* Financial stats summary blocks */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Spend */}
-        <div className="bg-[#111113] border border-zinc-800 rounded-2xl p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
-            Total Spend
-          </p>
-          <p className="text-2xl font-bold text-white tracking-tight">
+      {/* Overall Summary Cards */}
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+        {/* Spend Card */}
+        <div className="bg-[#111113] border border-zinc-800 rounded-2xl p-3 sm:p-5 flex flex-col items-center justify-center text-center group transition-all hover:border-zinc-750" title="Total Spend">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mb-1.5 sm:mb-2.5">
+            <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5" />
+          </div>
+          <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-white tracking-tight truncate w-full">
             ₹{totalSpend.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-          </p>
+          </h3>
         </div>
 
-        {/* Deposits */}
-        <div className="bg-[#111113] border border-zinc-800 rounded-2xl p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
-            Total Deposits
-          </p>
-          <p className="text-2xl font-bold text-green-500 tracking-tight">
+        {/* Deposits Card */}
+        <div className="bg-[#111113] border border-zinc-800 rounded-2xl p-3 sm:p-5 flex flex-col items-center justify-center text-center group transition-all hover:border-zinc-750" title="Total Deposits">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center mb-1.5 sm:mb-2.5">
+            <ArrowDownLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+          </div>
+          <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-green-500 tracking-tight truncate w-full">
             ₹{totalDeposits.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-          </p>
+          </h3>
         </div>
 
-        {/* Outstanding */}
-        <div className="bg-[#111113] border border-zinc-800 rounded-2xl p-5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
-            Outstanding Liability
-          </p>
-          <p className="text-2xl font-bold text-blue-400 tracking-tight">
+        {/* Outstanding Card */}
+        <div className="bg-[#111113] border border-zinc-800 rounded-2xl p-3 sm:p-5 flex flex-col items-center justify-center text-center group transition-all hover:border-zinc-750" title="Total Outstanding">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center mb-1.5 sm:mb-2.5">
+            <Receipt className="h-4 w-4 sm:h-5 sm:w-5" />
+          </div>
+          <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-blue-400 tracking-tight truncate w-full">
             ₹{totalOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-          </p>
+          </h3>
         </div>
       </div>
 
-      {/* Home & Mine details grids */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Home Summary */}
-        <div className="bg-[#111113] border border-zinc-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
-            <span className="text-sm font-bold text-white tracking-wide">HOME</span>
-            <span className="text-xs text-zinc-500">Shared Liability</span>
-          </div>
+      {/* Bucket Split Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {bucketData.map((b) => {
+          const colors = getBucketColor(b.name);
+          const isConfigured = buckets.includes(b.name);
+          return (
+            <div key={b.name} className="bg-[#111113] border border-zinc-800 rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className={cn("w-2 h-2 rounded-full", colors.solid)} />
+                  <span className="text-sm font-bold text-white tracking-wide truncate max-w-[120px]" title={b.name}>
+                    {b.name}
+                  </span>
+                </div>
+                <span className="text-[10px] text-zinc-500 font-medium">
+                  {isConfigured ? "Active" : "Legacy"}
+                </span>
+              </div>
 
-          <div className="space-y-4">
-            <div className="flex justify-between items-baseline">
-              <span className="text-xs text-zinc-400">Home Total</span>
-              <span className="text-sm font-medium text-zinc-200">
-                ₹{homeTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </span>
+              <div className="space-y-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs text-zinc-400">Total Spend</span>
+                  <span className="text-sm font-medium text-zinc-200">
+                    ₹{b.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs text-zinc-400">Deposits Received</span>
+                  <span className="text-sm font-medium text-green-500">
+                    ₹{b.deposits.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-baseline border-t border-zinc-800/30 pt-3">
+                  <span className="text-xs font-semibold text-zinc-300">Outstanding</span>
+                  <span className={cn("text-base font-bold", colors.text)}>
+                    ₹{b.outstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between items-baseline">
-              <span className="text-xs text-zinc-400">Home Deposits</span>
-              <span className="text-sm font-medium text-green-500">
-                ₹{homeDeposits.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-            <div className="flex justify-between items-baseline border-t border-zinc-800/30 pt-3">
-              <span className="text-xs font-semibold text-zinc-300">Home Outstanding</span>
-              <span className="text-base font-bold text-blue-400">
-                ₹{homeOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Mine Summary */}
-        <div className="bg-[#111113] border border-zinc-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
-            <span className="text-sm font-bold text-white tracking-wide">MINE</span>
-            <span className="text-xs text-zinc-500">Personal Liability</span>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex justify-between items-baseline">
-              <span className="text-xs text-zinc-400">My Total</span>
-              <span className="text-sm font-medium text-zinc-200">
-                ₹{myTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-            <div className="flex justify-between items-baseline">
-              <span className="text-xs text-zinc-400">My Deposits</span>
-              <span className="text-sm font-medium text-green-500">
-                ₹{myDeposits.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-            <div className="flex justify-between items-baseline border-t border-zinc-800/30 pt-3">
-              <span className="text-xs font-semibold text-zinc-300">My Outstanding</span>
-              <span className="text-base font-bold text-blue-400">
-                ₹{myOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       {/* List of statement transactions */}
@@ -337,16 +356,21 @@ export default function StatementDetailsPage() {
                       <span className="font-semibold text-sm text-zinc-100 truncate">
                         {tx.transactionName}
                       </span>
-                      <span
-                        className={cn(
-                          "text-[10px] font-bold px-1.5 py-0.5 rounded",
-                          tx.owner === "HOME"
-                            ? "bg-blue-400/10 text-blue-400 border border-blue-400/20"
-                            : "bg-purple-400/10 text-purple-400 border border-purple-400/20"
-                        )}
-                      >
-                        {tx.owner}
-                      </span>
+                      {(() => {
+                        const badgeColors = getBucketColor(tx.owner);
+                        return (
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold px-1.5 py-0.5 rounded border",
+                              badgeColors.bg,
+                              badgeColors.text,
+                              badgeColors.border
+                            )}
+                          >
+                            {tx.owner}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <p className="text-xs text-zinc-500">
                       {tx.transactionDate.toLocaleDateString("en-US", {

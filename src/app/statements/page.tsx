@@ -78,6 +78,7 @@ export default function StatementsPage() {
         const list: TransactionData[] = [];
         snap.forEach((doc) => {
           const data = doc.data();
+          if (data.deleted) return;
           list.push({
             id: data.id,
             userId: data.userId,
@@ -87,6 +88,7 @@ export default function StatementsPage() {
             owner: data.owner,
             transactionDate: data.transactionDate.toDate(),
             cycleId: data.cycleId,
+            deleted: data.deleted,
           });
         });
         setTransactions(list);
