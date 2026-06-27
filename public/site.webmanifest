@@ -1,47 +1,51 @@
 {
-  "name": "Offset Card Liability Tracker",
-  "short_name": "Offset",
-  "description": "Track credit card liabilities between Home and Mine automatically.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#09090B",
-  "theme_color": "#09090B",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "/android-chrome-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/android-chrome-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Transactions",
-      "url": "/transactions",
-      "description": "View credit card transactions"
-    },
-    {
-      "name": "Statements",
-      "url": "/statements",
-      "description": "View monthly billing cycles and statements"
-    },
-    {
-      "name": "Settings",
-      "url": "/settings",
-      "description": "Manage cycle settings and session"
-    }
-  ]
+    "id": "com.afterthought.offset",
+    "name": "Offset",
+    "short_name": "Offset",
+    "description": "Track credit card liabilities between Home and Mine automatically.",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#09090B",
+    "theme_color": "#09090B",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Transactions",
+            "url": "/transactions",
+            "description": "View credit card transactions"
+        },
+        {
+            "name": "Statements",
+            "url": "/statements",
+            "description": "View monthly billing cycles and statements"
+        },
+        {
+            "name": "Settings",
+            "url": "/settings",
+            "description": "Manage cycle settings and session"
+        }
+    ],
+    "display_override": ["window-controls-overlay", "standalone"],
+    "categories": ["productivity"]
 }
