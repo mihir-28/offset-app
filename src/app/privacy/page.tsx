@@ -36,7 +36,7 @@ const sections = [
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-[#09090B] px-6 py-5 text-zinc-100">
-      <div className="w-full max-w-md space-y-4">
+      <div className="mx-auto w-full max-w-6xl space-y-4">
         <Link href="/login" className="inline-flex items-center gap-3 text-sm font-semibold text-zinc-300 hover:text-white">
           <BrandMark className="h-9 w-9 rounded-xl border-blue-400/20 shadow-none" />
           Offset
@@ -48,9 +48,14 @@ export default function PrivacyPage() {
             <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-white">Privacy Policy</h1>
             <p className="mt-2 text-xs text-zinc-500">Last updated: June 27, 2026</p>
           </div>
-          <div>
-            {sections.map((section) => (
-              <div key={section.title} className="border-b border-zinc-800/70 px-4 py-4 last:border-b-0">
+          <div className="grid lg:grid-cols-2">
+            {sections.map((section, index) => (
+              <div
+                key={section.title}
+                className={`border-b border-zinc-800/70 px-4 py-4 last:border-b-0 lg:border-r ${
+                  index % 2 === 1 ? "lg:border-r-0" : ""
+                } ${index >= sections.length - 2 ? "lg:border-b-0" : ""}`}
+              >
                 <h2 className="text-sm font-bold text-white">{section.title}</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-400">{section.body}</p>
               </div>
