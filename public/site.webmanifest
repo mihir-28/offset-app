@@ -2,7 +2,7 @@
     "id": "com.afterthought.offset",
     "name": "Offset",
     "short_name": "Offset",
-    "description": "Track credit card liabilities between Home and Mine automatically.",
+    "description": "Track credit card liabilities across custom buckets, and billing cycles.",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",

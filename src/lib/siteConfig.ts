@@ -2,7 +2,7 @@ export const siteConfig = {
     name: "Offset",
     title: "Offset | Card Liability Tracker",
     description:
-        "Track credit card liabilities effortlessly between Home and Mine.",
+        "Track credit card liabilities across custom buckets, and billing cycles.",
     url: "https://offset-app.mihirnagda.in",
     locale: "en_US",
     keywords: [
@@ -13,7 +13,8 @@ export const siteConfig = {
         "credit card liabilities",
         "expense tracker",
         "finance manager",
-        "Home and Mine credit card bills",
+        "bucket based credit card bills",
+        "custom expense buckets",
         "Mihir Nagda",
         "Next.js",
         "TypeScript",

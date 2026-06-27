@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "../../context/auth-context";
 import { Button } from "../../components/ui/button";
 import { ShieldAlert } from "lucide-react";
@@ -39,7 +40,7 @@ export default function LoginPage() {
           />
           <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Offset</h1>
           <p className="text-zinc-400 text-sm">
-            Track your card liabilities effortlessly.
+            Track card liabilities across custom buckets.
           </p>
         </div>
 
@@ -84,7 +85,15 @@ export default function LoginPage() {
           </Button>
 
           <p className="mt-4 text-center text-xs text-zinc-500">
-            By continuing, you agree to {"Offset's"} terms of service.
+            By continuing, you agree to{" "}
+            <Link href="/terms" className="font-semibold text-zinc-300 underline-offset-4 hover:text-white hover:underline">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="font-semibold text-zinc-300 underline-offset-4 hover:text-white hover:underline">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </div>
       </div>

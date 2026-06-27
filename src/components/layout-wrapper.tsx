@@ -11,19 +11,20 @@ import { BrandMark } from "./brand-mark";
 import { Settings } from "lucide-react";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const isPublicRoute = pathname === "/login" || pathname === "/privacy" || pathname === "/terms";
 
   useEffect(() => {
     if (!loading) {
-      if (!user && pathname !== "/login") {
+      if (!user && !isPublicRoute) {
         router.replace("/login");
       } else if (user && pathname === "/login") {
         router.replace("/");
       }
     }
-  }, [user, loading, pathname, router]);
+  }, [user, loading, pathname, router, isPublicRoute]);
 
   // Loading / Splash Screen
   if (loading) {
@@ -40,9 +41,9 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     );
   }
 
-  // Not logged in -> only allow Login page
+  // Not logged in -> allow public pages only.
   if (!user) {
-    return pathname === "/login" ? (
+    return isPublicRoute ? (
       <div className="min-h-screen bg-[#09090B] text-white flex flex-col relative overflow-hidden">
         {/* Ambient background glow for Login */}
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -86,7 +87,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen md:pl-76 relative z-10">
-        <main className="flex-1 px-6 py-5 md:p-8 pb-24 md:pb-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 px-6 py-5 pb-24 md:pb-5 max-w-7xl w-full mx-auto">
           {children}
         </main>
       </div>

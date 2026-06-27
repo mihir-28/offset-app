@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../context/auth-context";
 import { db } from "../lib/firebase";
 import { getCycleBounds, getCycleId } from "../lib/cycle-utils";
-import { getOrCreateCycle, deleteTransaction, TransactionData, StatementCycleData } from "../lib/db-helpers";
+import { getOrCreateCycle, deleteTransaction, TransactionData, StatementCycleData, decryptTransactionDoc, decryptStatementCycleDoc } from "../lib/db-helpers";
 import {
   collection,
   query,
@@ -18,6 +18,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { addTransaction } from "../lib/db-helpers";
 import { cn } from "../lib/utils";
+import { evaluateAmountExpression } from "../lib/calculator";
 
 const getBucketColor = (bucketName: string) => {
   const themes = [
@@ -53,6 +54,7 @@ export default function Dashboard() {
   // Desktop Quick Add Form State
   const [quickName, setQuickName] = useState("");
   const [quickAmount, setQuickAmount] = useState("");
+  const [quickAmountError, setQuickAmountError] = useState("");
   const [quickDeposit, setQuickDeposit] = useState("");
   const [quickOwner, setQuickOwner] = useState<string>("");
   const [quickLoading, setQuickLoading] = useState(false);
@@ -90,18 +92,9 @@ export default function Dashboard() {
         const cycleDocRef = doc(db, "statementCycles", fullCycleId);
         unsubscribeCycle = onSnapshot(
           cycleDocRef,
-          (docSnap) => {
+          async (docSnap) => {
             if (docSnap.exists()) {
-              const data = docSnap.data();
-              setCycle({
-                id: data.id,
-                userId: data.userId,
-                startDate: data.startDate.toDate(),
-                endDate: data.endDate.toDate(),
-                title: data.title,
-                year: data.year,
-                status: data.status,
-              });
+              setCycle(await decryptStatementCycleDoc(docSnap.data(), docSnap.id));
             }
           },
           (err) => {
@@ -119,27 +112,15 @@ export default function Dashboard() {
 
         unsubscribeTx = onSnapshot(
           txQuery,
-          (querySnap) => {
-            const txList: TransactionData[] = [];
-            querySnap.forEach((doc) => {
-              const data = doc.data();
-              if (data.deleted) return;
-              txList.push({
-                id: data.id,
-                userId: data.userId,
-                transactionName: data.transactionName,
-                amount: Number(data.amount),
-                deposit: Number(data.deposit),
-                owner: data.owner,
-                transactionDate: data.transactionDate.toDate(),
-                cycleId: data.cycleId,
-                deleted: data.deleted,
-              });
-            });
+          async (querySnap) => {
+            const txList = await Promise.all(
+              querySnap.docs.map((docSnap) => decryptTransactionDoc(docSnap.data(), docSnap.id))
+            );
+            const activeTxList = txList.filter((tx) => !tx.deleted);
 
             // Sort in memory by transactionDate desc, then createdAt desc
-            txList.sort((a, b) => b.transactionDate.getTime() - a.transactionDate.getTime());
-            setTransactions(txList);
+            activeTxList.sort((a, b) => b.transactionDate.getTime() - a.transactionDate.getTime());
+            setTransactions(activeTxList);
             setLoadingData(false);
           },
           (err) => {
@@ -202,12 +183,25 @@ export default function Dashboard() {
     if (!user || isCycleClosed) return;
     if (!quickName.trim() || !quickAmount) return;
 
+    let resolvedAmount = 0;
+    try {
+      resolvedAmount = evaluateAmountExpression(quickAmount);
+      if (resolvedAmount <= 0) {
+        throw new Error("Amount must be greater than 0.");
+      }
+      setQuickAmount(resolvedAmount.toFixed(2));
+      setQuickAmountError("");
+    } catch (error) {
+      setQuickAmountError((error as { message?: string }).message || "Invalid amount expression.");
+      return;
+    }
+
     setQuickLoading(true);
     try {
       await addTransaction(user.uid, {
         transactionName: quickName,
         transactionDate: new Date(),
-        amount: Number(quickAmount),
+        amount: resolvedAmount,
         deposit: Number(quickDeposit) || 0,
         owner: quickOwner || buckets[0],
       }, cycleStartDay);
@@ -333,7 +327,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
                   <div className="flex items-center gap-2">
                     <span className={cn("w-2 h-2 rounded-full", colors.solid)} />
-                    <span className="text-sm font-bold text-white tracking-wide truncate max-w-[120px]" title={b.name}>
+                    <span className="text-sm font-bold text-white tracking-wide truncate max-w-30" title={b.name}>
                       {b.name}
                     </span>
                   </div>
@@ -454,80 +448,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Profile Card at the end */}
-        {user && (
-          <div className="glass-panel border border-white/5 p-6 relative overflow-hidden flex flex-col sm:flex-row items-center gap-6 bg-[#111113]/40">
-            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-blue-500/5 blur-2xl pointer-events-none"></div>
-            
-            {/* Avatar with status glow */}
-            <div className="relative shrink-0">
-              <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-md scale-105"></div>
-              {user.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName || "User"}
-                  className="relative w-20 h-20 rounded-full border border-white/10 ring-4 ring-blue-500/10 object-cover"
-                />
-              ) : (
-                <div className="relative w-20 h-20 rounded-full bg-zinc-800 flex items-center justify-center text-blue-400 font-extrabold text-2xl uppercase border border-white/10 ring-4 ring-blue-500/10">
-                  {user.displayName?.charAt(0) || "U"}
-                </div>
-              )}
-            </div>
-
-            {/* User Details */}
-            <div className="flex-1 text-center sm:text-left space-y-1">
-              <h4 className="text-lg font-bold text-white font-sans tracking-tight">
-                {user.displayName || "Active Member"}
-              </h4>
-              <p className="text-xs text-zinc-400 font-body">
-                {user.email}
-              </p>
-              <div className="flex flex-wrap justify-center sm:justify-start gap-x-3 gap-y-1.5 pt-2 text-[11px] text-zinc-500 font-medium">
-                <span>Location: Mumbai, India</span>
-                <span className="text-zinc-700">•</span>
-                <span>Role: Card Administrator</span>
-              </div>
-            </div>
-
-            {/* Social Links */}
-            <div className="flex gap-2 shrink-0">
-              <a
-                href="https://github.com/mihir-28"
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-zinc-400 hover:text-white transition-all duration-300"
-                title="GitHub"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
-                </svg>
-              </a>
-              <a
-                href="https://www.linkedin.com/in/mihir-an28/"
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-zinc-400 hover:text-white transition-all duration-300"
-                title="LinkedIn"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                </svg>
-              </a>
-              <a
-                href="https://x.com/kyayaar_mihir"
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-zinc-400 hover:text-white transition-all duration-300"
-                title="Twitter / X"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                </svg>
-              </a>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Desktop Quick Add Panel (Right Sidebar on Desktop screens) */}
@@ -557,14 +477,29 @@ export default function Dashboard() {
                   Amount (₹)
                 </label>
                 <Input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   value={quickAmount}
-                  onChange={(e) => setQuickAmount(e.target.value)}
-                  placeholder="0.00"
+                  onChange={(e) => {
+                    setQuickAmount(e.target.value);
+                    setQuickAmountError("");
+                  }}
+                  onBlur={() => {
+                    if (!quickAmount.trim()) return;
+                    try {
+                      setQuickAmount(evaluateAmountExpression(quickAmount).toFixed(2));
+                      setQuickAmountError("");
+                    } catch (error) {
+                      setQuickAmountError((error as { message?: string }).message || "Invalid amount expression.");
+                    }
+                  }}
+                  placeholder="100+50*2"
                   required
                   className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 rounded-lg h-9 text-xs"
                 />
+                {quickAmountError && (
+                  <p className="text-[10px] text-red-400">{quickAmountError}</p>
+                )}
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
@@ -615,7 +550,13 @@ export default function Dashboard() {
               <div className="pt-2 flex justify-between text-[11px] border-t border-zinc-800/50">
                 <span className="text-zinc-500">Outstanding preview:</span>
                 <span className="font-semibold text-blue-400">
-                  ₹{Math.max(0, Number(quickAmount) - (Number(quickDeposit) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  ₹{(() => {
+                    try {
+                      return Math.max(0, evaluateAmountExpression(quickAmount) - (Number(quickDeposit) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+                    } catch {
+                      return "0.00";
+                    }
+                  })()}
                 </span>
               </div>
             )}

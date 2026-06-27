@@ -5,16 +5,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { doc, getDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { Calendar as CalendarIcon, ChevronLeft, Trash2 } from "lucide-react";
 import { useAuth } from "../../context/auth-context";
 import { db } from "../../lib/firebase";
-import { addTransaction, updateTransaction, deleteTransaction, TransactionData } from "../../lib/db-helpers";
+import { addTransaction, updateTransaction, deleteTransaction, TransactionData, decryptTransactionDoc } from "../../lib/db-helpers";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Calendar } from "../../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { cn } from "../../lib/utils";
+import { evaluateAmountExpression } from "../../lib/calculator";
 
 const getBucketColor = (bucketName: string) => {
   const themes = [
@@ -59,6 +60,8 @@ export default function AddTransactionPage() {
   const [loadingTx, setLoadingTx] = useState(!!editId);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [amountExpression, setAmountExpression] = useState("");
+  const [amountExpressionError, setAmountExpressionError] = useState("");
 
   const buckets = useMemo(() => profile?.buckets || ["HOME", "MINE"], [profile?.buckets]);
   const cycleStartDay = profile?.cycleStartDay || 17;
@@ -84,6 +87,22 @@ export default function AddTransactionPage() {
 
   const outstanding = Math.max(0, amount - deposit);
 
+  const commitAmountExpression = () => {
+    try {
+      const resolved = evaluateAmountExpression(amountExpression);
+      if (resolved <= 0) {
+        throw new Error("Amount must be greater than 0");
+      }
+      setValue("amount", resolved, { shouldValidate: true, shouldDirty: true });
+      setAmountExpression(resolved.toFixed(2));
+      setAmountExpressionError("");
+      return true;
+    } catch (error) {
+      setAmountExpressionError((error as { message?: string }).message || "Invalid amount expression.");
+      return false;
+    }
+  };
+
   const selectOptions = [...buckets];
   if (owner && !selectOptions.includes(owner)) {
     selectOptions.push(owner);
@@ -105,21 +124,15 @@ export default function AddTransactionPage() {
         const txRef = doc(db, "transactions", editId);
         const snap = await getDoc(txRef);
         if (snap.exists()) {
-          const data = snap.data() as TransactionData;
+          const data = await decryptTransactionDoc(snap.data(), snap.id);
           if (data.deleted) {
             console.error("Transaction is deleted");
             router.replace("/add");
             return;
           }
-          const txDate = data.transactionDate instanceof Timestamp 
-            ? data.transactionDate.toDate() 
-            : (data.transactionDate && typeof data.transactionDate === "object" && "seconds" in data.transactionDate)
-              ? new Date((data.transactionDate as { seconds: number }).seconds * 1000)
-              : new Date();
-
           const formattedTx = {
             ...data,
-            transactionDate: txDate,
+            transactionDate: data.transactionDate,
           };
           setEditData(formattedTx);
 
@@ -130,6 +143,7 @@ export default function AddTransactionPage() {
             deposit: formattedTx.deposit,
             owner: formattedTx.owner,
           });
+          setAmountExpression(formattedTx.amount.toFixed(2));
         } else {
           console.error("Transaction not found");
           router.replace("/add");
@@ -209,7 +223,14 @@ export default function AddTransactionPage() {
       </div>
 
       {/* Form Card */}
-      <form onSubmit={handleSubmit(onSubmit)} className="p-6 rounded-2xl glass-panel border border-zinc-800 space-y-5 bg-[#111113]/40">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!commitAmountExpression()) return;
+          void handleSubmit(onSubmit)(event);
+        }}
+        className="p-6 rounded-2xl glass-panel border border-zinc-800 space-y-5 bg-[#111113]/40"
+      >
         
         {/* Transaction Name */}
         <div className="space-y-1.5">
@@ -281,14 +302,32 @@ export default function AddTransactionPage() {
               Amount (₹)
             </label>
             <Input
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              {...register("amount", { valueAsNumber: true })}
+              type="text"
+              inputMode="decimal"
+              placeholder="100+50*2"
+              value={amountExpression}
+              onChange={(event) => {
+                setAmountExpression(event.target.value);
+                setAmountExpressionError("");
+              }}
+              onBlur={() => {
+                if (amountExpression.trim()) {
+                  commitAmountExpression();
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  commitAmountExpression();
+                }
+              }}
               className="bg-zinc-900/50 border-zinc-850 focus:border-blue-500/30 text-zinc-100 placeholder:text-zinc-600 rounded-xl h-11"
             />
+            <input type="hidden" {...register("amount", { valueAsNumber: true })} />
             {errors.amount && (
               <p className="text-xs text-red-400">{errors.amount.message}</p>
+            )}
+            {amountExpressionError && (
+              <p className="text-xs text-red-400">{amountExpressionError}</p>
             )}
           </div>
 

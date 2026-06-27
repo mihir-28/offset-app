@@ -10,6 +10,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { auth, db, isConfigValid } from "../lib/firebase";
+import { migrateLegacyPlaintextData } from "../lib/db-helpers";
 
 export interface UserProfile {
   id: string;
@@ -88,6 +89,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ...userProfile,
             buckets: dbBuckets,
             cycleStartDay: dbCycleStartDay,
+          });
+
+          migrateLegacyPlaintextData(firebaseUser.uid).catch((migrationError) => {
+            console.error("Legacy encryption migration failed:", migrationError);
           });
         } catch (error) {
           console.error("Firestore user profile sync error (may be offline):", error);

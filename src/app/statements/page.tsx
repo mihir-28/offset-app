@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "../../context/auth-context";
 import { db } from "../../lib/firebase";
 import { getYearOptions } from "../../lib/cycle-utils";
-import { StatementCycleData, TransactionData } from "../../lib/db-helpers";
+import { StatementCycleData, TransactionData, decryptTransactionDoc, decryptStatementCycleDoc } from "../../lib/db-helpers";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { ChevronRight, Calendar, Lock, Unlock} from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -41,20 +41,10 @@ export default function StatementsPage() {
 
     const unsubscribeCycles = onSnapshot(
       cyclesQuery,
-      (snap) => {
-        const list: StatementCycleData[] = [];
-        snap.forEach((doc) => {
-          const data = doc.data();
-          list.push({
-            id: data.id,
-            userId: data.userId,
-            startDate: data.startDate.toDate(),
-            endDate: data.endDate.toDate(),
-            title: data.title,
-            year: Number(data.year),
-            status: data.status,
-          });
-        });
+      async (snap) => {
+        const list = await Promise.all(
+          snap.docs.map((docSnap) => decryptStatementCycleDoc(docSnap.data(), docSnap.id))
+        );
         
         // Sort desc by start date
         list.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
@@ -74,23 +64,10 @@ export default function StatementsPage() {
 
     const unsubscribeTx = onSnapshot(
       txQuery,
-      (snap) => {
-        const list: TransactionData[] = [];
-        snap.forEach((doc) => {
-          const data = doc.data();
-          if (data.deleted) return;
-          list.push({
-            id: data.id,
-            userId: data.userId,
-            transactionName: data.transactionName,
-            amount: Number(data.amount),
-            deposit: Number(data.deposit),
-            owner: data.owner,
-            transactionDate: data.transactionDate.toDate(),
-            cycleId: data.cycleId,
-            deleted: data.deleted,
-          });
-        });
+      async (snap) => {
+        const list = (await Promise.all(
+          snap.docs.map((docSnap) => decryptTransactionDoc(docSnap.data(), docSnap.id))
+        )).filter((tx) => !tx.deleted);
         setTransactions(list);
         setLoading(false);
       },
