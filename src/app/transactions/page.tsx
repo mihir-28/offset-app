@@ -14,12 +14,12 @@ import { cn } from "../../lib/utils";
 
 const getBucketColor = (bucketName: string) => {
   const themes = [
-    { text: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", solid: "bg-blue-500" }, // 0: Blue (HOME)
-    { text: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20", solid: "bg-purple-500" }, // 1: Purple (MINE)
-    { text: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20", solid: "bg-emerald-500" }, // 2: Emerald
-    { text: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20", solid: "bg-amber-500" }, // 3: Amber
-    { text: "text-rose-400", bg: "bg-rose-400/10", border: "border-rose-400/20", solid: "bg-rose-500" }, // 4: Rose
-    { text: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/20", solid: "bg-cyan-500" }, // 5: Cyan
+    { text: "text-blue-400", bg: "bg-blue-400/10", surface: "bg-blue-500/10", border: "border-blue-400/20", cardBorder: "border-blue-400/30", hoverBorder: "hover:border-blue-400/50", shine: "bg-blue-400/15", solid: "bg-blue-500" }, // 0: Blue (HOME)
+    { text: "text-purple-400", bg: "bg-purple-400/10", surface: "bg-purple-500/10", border: "border-purple-400/20", cardBorder: "border-purple-400/30", hoverBorder: "hover:border-purple-400/50", shine: "bg-purple-400/15", solid: "bg-purple-500" }, // 1: Purple (MINE)
+    { text: "text-emerald-400", bg: "bg-emerald-400/10", surface: "bg-emerald-500/10", border: "border-emerald-400/20", cardBorder: "border-emerald-400/30", hoverBorder: "hover:border-emerald-400/50", shine: "bg-emerald-400/15", solid: "bg-emerald-500" }, // 2: Emerald
+    { text: "text-amber-400", bg: "bg-amber-400/10", surface: "bg-amber-500/10", border: "border-amber-400/20", cardBorder: "border-amber-400/30", hoverBorder: "hover:border-amber-400/50", shine: "bg-amber-400/15", solid: "bg-amber-500" }, // 3: Amber
+    { text: "text-rose-400", bg: "bg-rose-400/10", surface: "bg-rose-500/10", border: "border-rose-400/20", cardBorder: "border-rose-400/30", hoverBorder: "hover:border-rose-400/50", shine: "bg-rose-400/15", solid: "bg-rose-500" }, // 4: Rose
+    { text: "text-cyan-400", bg: "bg-cyan-400/10", surface: "bg-cyan-500/10", border: "border-cyan-400/20", cardBorder: "border-cyan-400/30", hoverBorder: "hover:border-cyan-400/50", shine: "bg-cyan-400/15", solid: "bg-cyan-500" }, // 5: Cyan
   ];
 
   const nameUpper = bucketName.toUpperCase();
@@ -312,31 +312,24 @@ export default function TransactionsPage() {
           {filteredTransactions.map((tx) => {
             const isClosed = cycles[tx.cycleId]?.status === "CLOSED";
             const outstandingAmt = Math.max(0, tx.amount - tx.deposit);
-            const cycleTitle = cycles[tx.cycleId]?.title || "Calculating Cycle...";
-            const badgeColors = getBucketColor(tx.owner);
+            const bucketColors = getBucketColor(tx.owner);
 
             return (
               <div
                 key={tx.id}
                 className={cn(
-                  "bg-[#111113] border border-zinc-800 hover:border-zinc-700/80 p-4 rounded-xl flex items-center justify-between gap-4 transition-all",
+                  "relative isolate overflow-hidden rounded-xl border p-4 flex items-center justify-between gap-4 transition-all",
+                  bucketColors.surface,
+                  bucketColors.cardBorder,
+                  bucketColors.hoverBorder,
                   isClosed && "opacity-80 border-dashed"
                 )}
               >
-                <div className="flex-1 min-w-0">
+                <div className={cn("pointer-events-none absolute -right-16 -top-16 h-32 w-52 -rotate-[25deg] blur-3xl", bucketColors.shine)} />
+                <div className="relative z-10 flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-semibold text-sm text-zinc-100 truncate">
                       {tx.transactionName}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-[10px] font-bold px-1.5 py-0.5 rounded border",
-                        badgeColors.bg,
-                        badgeColors.text,
-                        badgeColors.border
-                      )}
-                    >
-                      {tx.owner}
                     </span>
                     {isClosed && (
                       <span className="flex items-center gap-0.5 rounded bg-zinc-800 px-1 py-0.5 text-[9px] font-medium text-zinc-400 border border-zinc-700">
@@ -345,20 +338,18 @@ export default function TransactionsPage() {
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
-                    <span>
+                  <div className="mt-1 text-xs text-zinc-500">
+                    <span className="whitespace-nowrap">
                       {tx.transactionDate.toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
                       })}
                     </span>
-                    <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                    <span>{cycleTitle}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="relative z-10 flex items-center gap-4">
                   {/* Financial stats */}
                   <div className="text-right">
                     <p className="text-sm font-semibold text-zinc-200">

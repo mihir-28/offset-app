@@ -22,12 +22,12 @@ import { evaluateAmountExpression } from "../lib/calculator";
 
 const getBucketColor = (bucketName: string) => {
   const themes = [
-    { text: "text-blue-400", bg: "bg-blue-400/10", border: "border-blue-400/20", solid: "bg-blue-500" }, // 0: Blue (HOME)
-    { text: "text-purple-400", bg: "bg-purple-400/10", border: "border-purple-400/20", solid: "bg-purple-500" }, // 1: Purple (MINE)
-    { text: "text-emerald-400", bg: "bg-emerald-400/10", border: "border-emerald-400/20", solid: "bg-emerald-500" }, // 2: Emerald
-    { text: "text-amber-400", bg: "bg-amber-400/10", border: "border-amber-400/20", solid: "bg-amber-500" }, // 3: Amber
-    { text: "text-rose-400", bg: "bg-rose-400/10", border: "border-rose-400/20", solid: "bg-rose-500" }, // 4: Rose
-    { text: "text-cyan-400", bg: "bg-cyan-400/10", border: "border-cyan-400/20", solid: "bg-cyan-500" }, // 5: Cyan
+    { text: "text-blue-400", bg: "bg-blue-400/10", surface: "bg-blue-500/10", border: "border-blue-400/20", cardBorder: "border-blue-400/30", shine: "bg-blue-400/15", solid: "bg-blue-500" }, // 0: Blue (HOME)
+    { text: "text-purple-400", bg: "bg-purple-400/10", surface: "bg-purple-500/10", border: "border-purple-400/20", cardBorder: "border-purple-400/30", shine: "bg-purple-400/15", solid: "bg-purple-500" }, // 1: Purple (MINE)
+    { text: "text-emerald-400", bg: "bg-emerald-400/10", surface: "bg-emerald-500/10", border: "border-emerald-400/20", cardBorder: "border-emerald-400/30", shine: "bg-emerald-400/15", solid: "bg-emerald-500" }, // 2: Emerald
+    { text: "text-amber-400", bg: "bg-amber-400/10", surface: "bg-amber-500/10", border: "border-amber-400/20", cardBorder: "border-amber-400/30", shine: "bg-amber-400/15", solid: "bg-amber-500" }, // 3: Amber
+    { text: "text-rose-400", bg: "bg-rose-400/10", surface: "bg-rose-500/10", border: "border-rose-400/20", cardBorder: "border-rose-400/30", shine: "bg-rose-400/15", solid: "bg-rose-500" }, // 4: Rose
+    { text: "text-cyan-400", bg: "bg-cyan-400/10", surface: "bg-cyan-500/10", border: "border-cyan-400/20", cardBorder: "border-cyan-400/30", shine: "bg-cyan-400/15", solid: "bg-cyan-500" }, // 5: Cyan
   ];
 
   const nameUpper = bucketName.toUpperCase();
@@ -323,8 +323,16 @@ export default function Dashboard() {
             const colors = getBucketColor(b.name);
             const isConfigured = buckets.includes(b.name);
             return (
-              <div key={b.name} className="bg-[#111113] border border-zinc-800 rounded-2xl p-6 relative">
-                <div className="flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
+              <div
+                key={b.name}
+                className={cn(
+                  "relative isolate overflow-hidden rounded-2xl border p-6",
+                  colors.surface,
+                  colors.cardBorder
+                )}
+              >
+                <div className={cn("pointer-events-none absolute -right-16 -top-16 h-40 w-64 -rotate-[25deg] blur-3xl", colors.shine)} />
+                <div className="relative z-10 flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
                   <div className="flex items-center gap-2">
                     <span className={cn("w-2 h-2 rounded-full", colors.solid)} />
                     <span className="text-sm font-bold text-white tracking-wide truncate max-w-30" title={b.name}>
@@ -336,7 +344,7 @@ export default function Dashboard() {
                   </span>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="relative z-10 space-y-4">
                   <div className="flex justify-between items-baseline">
                     <span className="text-xs text-zinc-400">Total Spend</span>
                     <span className="text-base font-semibold text-zinc-200">
