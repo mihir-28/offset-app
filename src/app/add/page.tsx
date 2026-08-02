@@ -51,7 +51,7 @@ type TransactionFormValues = z.infer<typeof transactionSchema>;
 
 export default function AddTransactionPage() {
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { user, profile, activeCard } = useAuth();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
 
@@ -64,7 +64,6 @@ export default function AddTransactionPage() {
   const [amountExpressionError, setAmountExpressionError] = useState("");
 
   const buckets = useMemo(() => profile?.buckets || ["HOME", "MINE"], [profile?.buckets]);
-  const cycleStartDay = profile?.cycleStartDay || 17;
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -117,7 +116,7 @@ export default function AddTransactionPage() {
 
   // Fetch edit data if editId is provided
   useEffect(() => {
-    if (!editId || !user) return;
+    if (!editId || !user || !activeCard) return;
 
     const fetchTx = async () => {
       try {
@@ -125,7 +124,7 @@ export default function AddTransactionPage() {
         const snap = await getDoc(txRef);
         if (snap.exists()) {
           const data = await decryptTransactionDoc(snap.data(), snap.id);
-          if (data.deleted) {
+          if (data.deleted || data.userId !== user.uid || data.cardId !== activeCard.id) {
             console.error("Transaction is deleted");
             router.replace("/add");
             return;
@@ -156,17 +155,17 @@ export default function AddTransactionPage() {
     };
 
     fetchTx();
-  }, [editId, user, reset, router]);
+  }, [editId, user, activeCard, reset, router]);
 
   const onSubmit = async (values: TransactionFormValues) => {
-    if (!user) return;
+    if (!user || !activeCard) return;
     setLoading(true);
 
     try {
       if (editId && editData) {
-        await updateTransaction(user.uid, editId, values, cycleStartDay);
+        await updateTransaction(user.uid, activeCard.id, editId, values, activeCard.cycleStartDay);
       } else {
-        await addTransaction(user.uid, values, cycleStartDay);
+        await addTransaction(user.uid, activeCard.id, values, activeCard.cycleStartDay);
       }
       router.push("/");
     } catch (error) {

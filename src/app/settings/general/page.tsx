@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
-import { migrateTransactionsToNewCycleDay } from "../../../lib/db-helpers";
+import { migrateTransactionsToNewCycleDay, updateCard } from "../../../lib/db-helpers";
 import { cn } from "../../../lib/utils";
 
 const getBucketColor = (bucketName: string) => {
@@ -38,13 +38,13 @@ const getBucketColor = (bucketName: string) => {
 };
 
 export default function GeneralSettingsPage() {
-  const { profile, updateBuckets, updateCycleStartDay } = useAuth();
+  const { profile, updateBuckets, activeCard, refreshCards } = useAuth();
   const [newBucketName, setNewBucketName] = useState("");
   const [savingBuckets, setSavingBuckets] = useState(false);
   const [savingCycleDay, setSavingCycleDay] = useState(false);
 
   const buckets = profile?.buckets || ["HOME", "MINE"];
-  const cycleStartDay = profile?.cycleStartDay || 17;
+  const cycleStartDay = activeCard?.cycleStartDay || 17;
 
   const formatOrdinal = (day: number) => {
     if (day === 1 || day === 21) return `${day}st`;
@@ -113,9 +113,10 @@ export default function GeneralSettingsPage() {
     ) {
       setSavingCycleDay(true);
       try {
-        if (profile?.id) {
-          await migrateTransactionsToNewCycleDay(profile.id, day);
-          await updateCycleStartDay(day);
+        if (profile?.id && activeCard) {
+          await migrateTransactionsToNewCycleDay(profile.id, activeCard.id, day);
+          await updateCard(profile.id, activeCard.id, activeCard.name, day);
+          await refreshCards();
         }
       } catch (err) {
         console.error("Failed to update cycle start day:", err);

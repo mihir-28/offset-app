@@ -28,6 +28,7 @@ export interface TransactionData {
   owner: string;
   transactionDate: Date;
   cycleId: string;
+  cardId: string;
   deleted?: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
@@ -37,6 +38,7 @@ export interface TransactionData {
 export interface StatementCycleData {
   id: string;
   userId: string;
+  cardId: string;
   startDate: Date;
   endDate: Date;
   title: string;
@@ -44,6 +46,16 @@ export interface StatementCycleData {
   status: "OPEN" | "CLOSED";
   createdAt?: Timestamp;
   encryptedPayload?: EncryptedPayload;
+}
+
+export interface CardData {
+  id: string;
+  userId: string;
+  name: string;
+  cycleStartDay: number;
+  archived?: boolean;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 interface EncryptedTransactionPayload {
@@ -62,6 +74,11 @@ interface EncryptedStatementPayload {
   status: "OPEN" | "CLOSED";
 }
 
+interface EncryptedCardPayload {
+  name: string;
+  cycleStartDay: number;
+}
+
 function toDate(value: unknown) {
   if (value instanceof Date) return value;
   if (value instanceof Timestamp) return value.toDate();
@@ -72,7 +89,7 @@ function toDate(value: unknown) {
   return new Date();
 }
 
-async function encryptTransactionPayload(userId: string, data: Omit<TransactionData, "userId" | "cycleId">) {
+async function encryptTransactionPayload(userId: string, data: Omit<TransactionData, "userId" | "cycleId" | "cardId">) {
   return encryptForUser<EncryptedTransactionPayload>(userId, {
     transactionName: data.transactionName,
     amount: Number(data.amount),
@@ -92,6 +109,39 @@ async function encryptStatementPayload(userId: string, data: Omit<StatementCycle
   });
 }
 
+async function encryptCardPayload(userId: string, name: string, cycleStartDay: number) {
+  return encryptForUser<EncryptedCardPayload>(userId, { name, cycleStartDay });
+}
+
+export async function decryptCardDoc(data: DocumentData, fallbackId?: string): Promise<CardData> {
+  const payload = data.encryptedPayload
+    ? await decryptForUser<EncryptedCardPayload>(data.userId, data.encryptedPayload)
+    : { name: data.name || "Card", cycleStartDay: Number(data.cycleStartDay) || 17 };
+  return { id: data.id || fallbackId || "", userId: data.userId, name: payload.name, cycleStartDay: payload.cycleStartDay, archived: Boolean(data.archived), createdAt: data.createdAt, updatedAt: data.updatedAt };
+}
+
+export async function getCards(userId: string): Promise<CardData[]> {
+  const snap = await getDocs(query(collection(db, "cards"), where("userId", "==", userId)));
+  const cards = await Promise.all(snap.docs.map((card) => decryptCardDoc(card.data(), card.id)));
+  return cards.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function createCard(userId: string, name: string, cycleStartDay = 17): Promise<CardData> {
+  const trimmedName = name.trim();
+  if (!trimmedName) throw new Error("Card name is required.");
+  const ref = doc(collection(db, "cards"));
+  await setDoc(ref, { id: ref.id, userId, archived: false, encryptedPayload: await encryptCardPayload(userId, trimmedName, cycleStartDay), encryptionVersion: 1, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  return { id: ref.id, userId, name: trimmedName, cycleStartDay, archived: false };
+}
+
+export async function updateCard(userId: string, cardId: string, name: string, cycleStartDay: number): Promise<void> {
+  await updateDoc(doc(db, "cards", cardId), { encryptedPayload: await encryptCardPayload(userId, name.trim(), cycleStartDay), encryptionVersion: 1, updatedAt: serverTimestamp() });
+}
+
+export async function archiveCard(cardId: string): Promise<void> {
+  await updateDoc(doc(db, "cards", cardId), { archived: true, updatedAt: serverTimestamp() });
+}
+
 export async function decryptTransactionDoc(
   data: DocumentData,
   fallbackId?: string
@@ -108,6 +158,7 @@ export async function decryptTransactionDoc(
       owner: payload.owner,
       transactionDate: toDate(payload.transactionDate),
       cycleId: encryptedDoc.cycleId,
+      cardId: encryptedDoc.cardId || "",
       deleted: encryptedDoc.deleted,
       createdAt: encryptedDoc.createdAt,
       updatedAt: encryptedDoc.updatedAt,
@@ -124,6 +175,7 @@ export async function decryptTransactionDoc(
     owner: data.owner,
     transactionDate: toDate(data.transactionDate),
     cycleId: data.cycleId,
+    cardId: data.cardId || "",
     deleted: data.deleted,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
@@ -140,6 +192,7 @@ export async function decryptStatementCycleDoc(
     return {
       id: encryptedDoc.id || fallbackId,
       userId: encryptedDoc.userId,
+      cardId: encryptedDoc.cardId || "",
       startDate: toDate(payload.startDate),
       endDate: toDate(payload.endDate),
       title: payload.title,
@@ -153,6 +206,7 @@ export async function decryptStatementCycleDoc(
   return {
     id: data.id || fallbackId,
     userId: data.userId,
+    cardId: data.cardId || "",
     startDate: toDate(data.startDate),
     endDate: toDate(data.endDate),
     title: data.title,
@@ -238,13 +292,27 @@ export async function migrateLegacyPlaintextData(userId: string): Promise<void> 
   }
 }
 
-export async function getOrCreateCycle(userId: string, date: Date, cycleStartDay?: number): Promise<string> {
+export async function migrateUserDataToCard(userId: string, cardId: string): Promise<void> {
+  const [txSnap, cycleSnap] = await Promise.all([
+    getDocs(query(collection(db, "transactions"), where("userId", "==", userId))),
+    getDocs(query(collection(db, "statementCycles"), where("userId", "==", userId))),
+  ]);
+  const updates = [...txSnap.docs, ...cycleSnap.docs].filter((item) => !item.data().cardId);
+  for (let index = 0; index < updates.length; index += 400) {
+    const batch = writeBatch(db);
+    updates.slice(index, index + 400).forEach((item) => batch.update(item.ref, { cardId }));
+    await batch.commit();
+  }
+}
+
+export async function getOrCreateCycle(userId: string, cardId: string, date: Date, cycleStartDay?: number): Promise<string> {
   const { startDate, endDate } = getCycleBounds(date, cycleStartDay);
   const cycleIdKey = getCycleId(startDate);
-  const fullCycleId = `${userId}_${cycleIdKey}`;
+  const fullCycleId = `${userId}_${cardId}_${cycleIdKey}`;
   const cyclePayload: StatementCycleData = {
     id: fullCycleId,
     userId,
+    cardId,
     startDate,
     endDate,
     title: getCycleTitle(startDate, endDate),
@@ -257,6 +325,7 @@ export async function getOrCreateCycle(userId: string, date: Date, cycleStartDay
   const storedPayload = {
     id: fullCycleId,
     userId,
+    cardId,
     encryptedPayload,
     encryptionVersion: 1,
     createdAt: serverTimestamp(),
@@ -298,10 +367,11 @@ export async function getOrCreateCycle(userId: string, date: Date, cycleStartDay
 
 export async function addTransaction(
   userId: string,
-  data: Omit<TransactionData, "userId" | "cycleId">,
+  cardId: string,
+  data: Omit<TransactionData, "userId" | "cycleId" | "cardId">,
   cycleStartDay?: number
 ): Promise<string> {
-  const fullCycleId = await getOrCreateCycle(userId, data.transactionDate, cycleStartDay);
+  const fullCycleId = await getOrCreateCycle(userId, cardId, data.transactionDate, cycleStartDay);
 
   const cycleDocRef = doc(db, "statementCycles", fullCycleId);
   try {
@@ -324,6 +394,7 @@ export async function addTransaction(
   const transactionsCol = collection(db, "transactions");
   const docRef = await addDoc(transactionsCol, {
     userId,
+    cardId,
     cycleId: fullCycleId,
     deleted: false,
     encryptedPayload: await encryptTransactionPayload(userId, data),
@@ -338,8 +409,9 @@ export async function addTransaction(
 
 export async function updateTransaction(
   userId: string,
+  cardId: string,
   transactionId: string,
-  data: Omit<TransactionData, "userId" | "cycleId" | "id">,
+  data: Omit<TransactionData, "userId" | "cycleId" | "cardId" | "id">,
   cycleStartDay?: number
 ): Promise<void> {
   const txRef = doc(db, "transactions", transactionId);
@@ -351,12 +423,15 @@ export async function updateTransaction(
       throw new Error("Transaction does not exist.");
     }
     const oldTx = await decryptTransactionDoc(txSnap.data(), txSnap.id);
+    if (oldTx.userId !== userId || oldTx.cardId !== cardId) {
+      throw new Error("Transaction does not belong to this card.");
+    }
     oldCycleId = oldTx.cycleId;
   } catch (error) {
     const err = error as { code?: string; message?: string };
     if (err.code === "unavailable" || err.message?.includes("offline")) {
       console.warn("Firestore offline: Reading cached transaction or assuming default cycle.");
-      oldCycleId = await getOrCreateCycle(userId, data.transactionDate, cycleStartDay);
+      oldCycleId = await getOrCreateCycle(userId, cardId, data.transactionDate, cycleStartDay);
     } else {
       throw error;
     }
@@ -380,7 +455,7 @@ export async function updateTransaction(
     }
   }
 
-  const newFullCycleId = await getOrCreateCycle(userId, data.transactionDate, cycleStartDay);
+  const newFullCycleId = await getOrCreateCycle(userId, cardId, data.transactionDate, cycleStartDay);
 
   if (newFullCycleId !== oldCycleId) {
     const newCycleDocRef = doc(db, "statementCycles", newFullCycleId);
@@ -404,6 +479,7 @@ export async function updateTransaction(
 
   await updateDoc(txRef, {
     cycleId: newFullCycleId,
+    cardId,
     encryptedPayload: await encryptTransactionPayload(userId, data),
     encryptionVersion: 1,
     updatedAt: serverTimestamp(),
@@ -479,10 +555,11 @@ export async function closeCycle(fullCycleId: string): Promise<void> {
 
 export async function migrateTransactionsToNewCycleDay(
   userId: string,
+  cardId: string,
   newCycleStartDay: number
 ): Promise<void> {
   const transactionsCol = collection(db, "transactions");
-  const txQuery = query(transactionsCol, where("userId", "==", userId));
+  const txQuery = query(transactionsCol, where("userId", "==", userId), where("cardId", "==", cardId));
 
   const querySnap = await getDocs(txQuery);
   const batch = writeBatch(db);
@@ -492,12 +569,13 @@ export async function migrateTransactionsToNewCycleDay(
     const tx = await decryptTransactionDoc(docSnap.data(), docSnap.id);
     if (tx.deleted) continue;
 
-    const newCycleId = await getOrCreateCycle(userId, tx.transactionDate, newCycleStartDay);
+    const newCycleId = await getOrCreateCycle(userId, cardId, tx.transactionDate, newCycleStartDay);
 
     if (tx.cycleId !== newCycleId || !hasEncryptedPayload(docSnap.data())) {
       batch.update(docSnap.ref, {
         id: tx.id || docSnap.id,
         userId,
+        cardId,
         cycleId: newCycleId,
         encryptedPayload: await encryptTransactionPayload(userId, tx),
         encryptionVersion: 1,

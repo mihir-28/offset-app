@@ -33,7 +33,7 @@ const getBucketColor = (bucketName: string) => {
 };
 
 export default function StatementDetailsPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, activeCard } = useAuth();
   const { id } = useParams() as { id: string };
   const router = useRouter();
 
@@ -43,7 +43,7 @@ export default function StatementDetailsPage() {
   const [closingLoading, setClosingLoading] = useState(false);
 
   useEffect(() => {
-    if (!user || !id) return;
+    if (!user || !id || !activeCard) return;
 
     // 1. Listen to specific statement cycle document
     const cycleDocRef = doc(db, "statementCycles", id);
@@ -51,7 +51,9 @@ export default function StatementDetailsPage() {
       cycleDocRef,
       async (docSnap) => {
         if (docSnap.exists()) {
-          setCycle(await decryptStatementCycleDoc(docSnap.data(), docSnap.id));
+          const nextCycle = await decryptStatementCycleDoc(docSnap.data(), docSnap.id);
+          if (nextCycle.userId !== user.uid || nextCycle.cardId !== activeCard.id) { router.push("/statements"); return; }
+          setCycle(nextCycle);
         } else {
           // If not found, redirect to archive list
           router.push("/statements");
@@ -67,6 +69,7 @@ export default function StatementDetailsPage() {
     const txQuery = query(
       collection(db, "transactions"),
       where("userId", "==", user.uid),
+      where("cardId", "==", activeCard.id),
       where("cycleId", "==", id)
     );
     const unsubscribeTx = onSnapshot(
@@ -90,7 +93,7 @@ export default function StatementDetailsPage() {
       unsubscribeCycle();
       unsubscribeTx();
     };
-  }, [user, id, router]);
+  }, [user, id, activeCard, router]);
 
   // Calculations
   const buckets = profile?.buckets || ["HOME", "MINE"];

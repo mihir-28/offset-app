@@ -19,7 +19,7 @@ const allNavItems = [...mainNavItems, addNavItem];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, cards, activeCard, selectCard } = useAuth();
 
   return (
     <aside className="hidden md:flex md:w-64 flex-col fixed top-6 bottom-6 left-6 glass-nav border border-white/5 rounded-3xl p-6 z-30 shadow-2xl shadow-black/45">
@@ -30,6 +30,8 @@ export function Sidebar() {
           Offset
         </span>
       </div>
+
+      {activeCard && <div className="mb-6"><label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Active card</label><select value={activeCard.id} onChange={(event) => void selectCard(event.target.value)} className="h-10 w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 text-xs font-semibold text-zinc-200 outline-none"><option value={activeCard.id}>{activeCard.name}</option>{cards.filter((card) => card.id !== activeCard.id).map((card) => <option key={card.id} value={card.id}>{card.name}</option>)}</select></div>}
 
       {/* Nav links */}
       <nav className="flex-1 space-y-1.5 relative">

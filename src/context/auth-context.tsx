@@ -10,7 +10,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { auth, db, isConfigValid } from "../lib/firebase";
-import { migrateLegacyPlaintextData } from "../lib/db-helpers";
+import { CardData, createCard, getCards, migrateLegacyPlaintextData, migrateUserDataToCard } from "../lib/db-helpers";
 
 export interface UserProfile {
   id: string;
@@ -20,6 +20,7 @@ export interface UserProfile {
   createdAt?: Timestamp;
   buckets?: string[];
   cycleStartDay?: number;
+  activeCardId?: string;
 }
 
 interface AuthContextType {
@@ -30,6 +31,11 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateBuckets: (newBuckets: string[]) => Promise<void>;
   updateCycleStartDay: (day: number) => Promise<void>;
+  cards: CardData[];
+  activeCard: CardData | null;
+  selectCard: (cardId: string) => Promise<void>;
+  completeCardSetup: (name: string) => Promise<void>;
+  refreshCards: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +44,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(isConfigValid);
+  const [cards, setCards] = useState<CardData[]>([]);
+  const [activeCardId, setActiveCardId] = useState<string | null>(null);
+
+  const refreshCards = async () => {
+    if (!user) return;
+    const nextCards = (await getCards(user.uid)).filter((card) => !card.archived);
+    setCards(nextCards);
+  };
 
   useEffect(() => {
     if (!isConfigValid) {
@@ -56,13 +70,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         setProfile(userProfile);
-        setLoading(false);
 
         // Sync user profile to Firestore after auth is ready so the app shell does not block on rules/network.
         const userDocRef = doc(db, "users", firebaseUser.uid);
         try {
           // Attempt to get user first. If offline, this might get from cache or fail.
           const docSnap = await getDoc(userDocRef);
+          const existingProfile = docSnap.exists() ? docSnap.data() : {};
           let dbBuckets = ["HOME", "MINE"];
           let dbCycleStartDay = 17;
 
@@ -85,11 +99,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }, { merge: true });
           }
 
+          const savedCards = (await getCards(firebaseUser.uid)).filter((card) => !card.archived);
+          const savedActiveCardId = typeof existingProfile.activeCardId === "string" ? existingProfile.activeCardId : undefined;
+          const selectedCardId = savedCards.some((card) => card.id === savedActiveCardId) ? savedActiveCardId : savedCards[0]?.id;
+          if (selectedCardId && selectedCardId !== savedActiveCardId) {
+            await setDoc(userDocRef, { activeCardId: selectedCardId }, { merge: true });
+          }
+          setCards(savedCards);
+          setActiveCardId(selectedCardId || null);
           setProfile({
             ...userProfile,
             buckets: dbBuckets,
             cycleStartDay: dbCycleStartDay,
+            activeCardId: selectedCardId,
           });
+          setLoading(false);
 
           migrateLegacyPlaintextData(firebaseUser.uid).catch((migrationError) => {
             console.error("Legacy encryption migration failed:", migrationError);
@@ -102,9 +126,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             buckets: ["HOME", "MINE"],
             cycleStartDay: 17,
           });
+          setLoading(false);
         }
       } else {
         setProfile(null);
+        setCards([]);
+        setActiveCardId(null);
         setLoading(false);
       }
     });
@@ -149,6 +176,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile((prev) => prev ? { ...prev, cycleStartDay: day } : null);
   };
 
+  const selectCard = async (cardId: string) => {
+    if (!user) return;
+    await setDoc(doc(db, "users", user.uid), { activeCardId: cardId }, { merge: true });
+    setActiveCardId(cardId);
+    setProfile((prev) => prev ? { ...prev, activeCardId: cardId } : null);
+  };
+
+  const completeCardSetup = async (name: string) => {
+    if (!user || !profile) return;
+    const card = await createCard(user.uid, name, profile.cycleStartDay || 17);
+    await migrateUserDataToCard(user.uid, card.id);
+    await selectCard(card.id);
+    setCards([card]);
+  };
+
+  const activeCard = cards.find((card) => card.id === activeCardId) || null;
+
   return (
     <AuthContext.Provider
       value={{
@@ -159,6 +203,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         updateBuckets,
         updateCycleStartDay,
+        cards,
+        activeCard,
+        selectCard,
+        completeCardSetup,
+        refreshCards,
       }}
     >
       {children}

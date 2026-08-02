@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Settings, User, Info } from "lucide-react";
+import { ChevronRight, Settings, User, Info, CreditCard } from "lucide-react";
 
 const settingsRows = [
+  { href: "/settings/cards", title: "Cards", description: "Add and switch cards", icon: CreditCard },
   {
     href: "/settings/general",
     title: "General",

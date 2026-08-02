@@ -9,9 +9,10 @@ import { PwaRegistration } from "./pwa-register";
 import InstallToast from "./InstallToast";
 import { BrandMark } from "./brand-mark";
 import { Settings } from "lucide-react";
+import { CardSetupDialog } from "./card-setup-dialog";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, cards, activeCard, selectCard } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const isPublicRoute = pathname === "/login" || pathname === "/privacy" || pathname === "/terms";
@@ -78,6 +79,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
             Offset
           </span>
         </div>
+        {activeCard && <select aria-label="Active card" value={activeCard.id} onChange={(event) => void selectCard(event.target.value)} className="ml-auto mr-3 max-w-28 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-[10px] text-zinc-200"><option value={activeCard.id}>{activeCard.name}</option>{cards.filter((card) => card.id !== activeCard.id).map((card) => <option key={card.id} value={card.id}>{card.name}</option>)}</select>}
         {user && (
           <Link href="/settings" className="p-1.5 text-zinc-400 hover:text-white transition-colors cursor-pointer" title="Settings">
             <Settings className="w-5.5 h-5.5" />
@@ -98,6 +100,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       {/* PWA Register & Toast components */}
       <PwaRegistration />
       <InstallToast />
+      {cards.length === 0 && <CardSetupDialog />}
     </div>
   );
 }

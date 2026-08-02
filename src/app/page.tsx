@@ -43,7 +43,7 @@ const getBucketColor = (bucketName: string) => {
 };
 
 export default function Dashboard() {
-  const { user, profile } = useAuth();
+  const { user, profile, activeCard } = useAuth();
   const router = useRouter();
 
   // State for cycle & transactions
@@ -60,7 +60,7 @@ export default function Dashboard() {
   const [quickLoading, setQuickLoading] = useState(false);
 
   const buckets = useMemo(() => profile?.buckets || ["HOME", "MINE"], [profile?.buckets]);
-  const cycleStartDay = profile?.cycleStartDay || 17;
+  const cycleStartDay = activeCard?.cycleStartDay || 17;
 
   // Initialize quickOwner when profile/buckets load
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function Dashboard() {
 
   // Calculate current cycle ID on load
   useEffect(() => {
-    if (!user || !profile) return;
+    if (!user || !profile || !activeCard) return;
 
     let unsubscribeTx = () => {};
     let unsubscribeCycle = () => {};
@@ -83,10 +83,10 @@ export default function Dashboard() {
       try {
         const bounds = getCycleBounds(new Date(), cycleStartDay);
         const cycleIdKey = getCycleId(bounds.startDate);
-        const fullCycleId = `${user.uid}_${cycleIdKey}`;
+        const fullCycleId = `${user.uid}_${activeCard.id}_${cycleIdKey}`;
 
         // Ensure cycle document exists in DB
-        await getOrCreateCycle(user.uid, new Date(), cycleStartDay);
+        await getOrCreateCycle(user.uid, activeCard.id, new Date(), cycleStartDay);
 
         // 1. Listen to Cycle Document
         const cycleDocRef = doc(db, "statementCycles", fullCycleId);
@@ -107,6 +107,7 @@ export default function Dashboard() {
         const txQuery = query(
           collection(db, "transactions"),
           where("userId", "==", user.uid),
+          where("cardId", "==", activeCard.id),
           where("cycleId", "==", fullCycleId)
         );
 
@@ -140,7 +141,7 @@ export default function Dashboard() {
       unsubscribeTx();
       unsubscribeCycle();
     };
-  }, [user, profile, cycleStartDay]);
+  }, [user, profile, activeCard, cycleStartDay]);
 
   // Calculations
   const displayBuckets = [...buckets];
@@ -180,7 +181,7 @@ export default function Dashboard() {
   // Desktop Quick Add Handler
   const handleQuickAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || isCycleClosed) return;
+    if (!user || !activeCard || isCycleClosed) return;
     if (!quickName.trim() || !quickAmount) return;
 
     let resolvedAmount = 0;
@@ -198,7 +199,7 @@ export default function Dashboard() {
 
     setQuickLoading(true);
     try {
-      await addTransaction(user.uid, {
+      await addTransaction(user.uid, activeCard.id, {
         transactionName: quickName,
         transactionDate: new Date(),
         amount: resolvedAmount,

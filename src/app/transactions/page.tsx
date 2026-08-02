@@ -35,7 +35,7 @@ const getBucketColor = (bucketName: string) => {
 };
 
 export default function TransactionsPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, activeCard } = useAuth();
   const router = useRouter();
 
   // Database State
@@ -49,16 +49,17 @@ export default function TransactionsPage() {
   const [cycleFilter, setCycleFilter] = useState<"CURRENT" | "ALL">("CURRENT");
 
   const buckets = profile?.buckets || ["HOME", "MINE"];
-  const cycleStartDay = profile?.cycleStartDay || 17;
+  const cycleStartDay = activeCard?.cycleStartDay || 17;
 
   // Fetch cycles and transactions
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeCard) return;
 
     // 1. Listen to Cycles to check lock status
     const cyclesQuery = query(
       collection(db, "statementCycles"),
-      where("userId", "==", user.uid)
+      where("userId", "==", user.uid),
+      where("cardId", "==", activeCard.id)
     );
     
     const unsubscribeCycles = onSnapshot(
@@ -82,7 +83,8 @@ export default function TransactionsPage() {
     // 2. Listen to Transactions
     const txQuery = query(
       collection(db, "transactions"),
-      where("userId", "==", user.uid)
+      where("userId", "==", user.uid),
+      where("cardId", "==", activeCard.id)
     );
 
     const unsubscribeTx = onSnapshot(
@@ -107,12 +109,12 @@ export default function TransactionsPage() {
       unsubscribeCycles();
       unsubscribeTx();
     };
-  }, [user]);
+  }, [user, activeCard]);
 
   // Determine current active cycle ID
   const bounds = getCycleBounds(new Date(), cycleStartDay);
   const currentCycleIdKey = getCycleId(bounds.startDate);
-  const currentFullCycleId = user ? `${user.uid}_${currentCycleIdKey}` : "";
+  const currentFullCycleId = user && activeCard ? `${user.uid}_${activeCard.id}_${currentCycleIdKey}` : "";
 
   // Apply Filters in memory
   const filteredTransactions = transactions.filter((tx) => {

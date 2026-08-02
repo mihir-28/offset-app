@@ -19,7 +19,7 @@ import {
 } from "../../components/ui/select";
 
 export default function StatementsPage() {
-  const { user } = useAuth();
+  const { user, activeCard } = useAuth();
   const [cycles, setCycles] = useState<StatementCycleData[]>([]);
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,12 +31,13 @@ export default function StatementsPage() {
 
   // Load database streams
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeCard) return;
 
     // 1. Listen to Cycles
     const cyclesQuery = query(
       collection(db, "statementCycles"),
-      where("userId", "==", user.uid)
+      where("userId", "==", user.uid),
+      where("cardId", "==", activeCard.id)
     );
 
     const unsubscribeCycles = onSnapshot(
@@ -59,7 +60,8 @@ export default function StatementsPage() {
     // 2. Listen to Transactions to compute metrics
     const txQuery = query(
       collection(db, "transactions"),
-      where("userId", "==", user.uid)
+      where("userId", "==", user.uid),
+      where("cardId", "==", activeCard.id)
     );
 
     const unsubscribeTx = onSnapshot(
@@ -81,7 +83,7 @@ export default function StatementsPage() {
       unsubscribeCycles();
       unsubscribeTx();
     };
-  }, [user]);
+  }, [user, activeCard]);
 
   // Group transactions by cycleId in memory
   const txByCycle = React.useMemo(() => {
