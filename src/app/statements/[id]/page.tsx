@@ -8,6 +8,7 @@ import { closeCycle, StatementCycleData, TransactionData, decryptTransactionDoc,
 import { doc, collection, query, where, onSnapshot } from "firebase/firestore";
 import { ArrowLeft, Lock, Unlock, Calendar, AlertCircle, ShieldCheck, ArrowUpRight, ArrowDownLeft, Receipt } from "lucide-react";
 import { Button } from "../../../components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 import { cn } from "../../../lib/utils";
 
 const getBucketColor = (bucketName: string) => {
@@ -41,6 +42,7 @@ export default function StatementDetailsPage() {
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [closingLoading, setClosingLoading] = useState(false);
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!user || !id || !activeCard) return;
@@ -139,21 +141,15 @@ export default function StatementDetailsPage() {
 
   const handleCloseStatement = async () => {
     if (!cycle || !canClose) return;
-
-    if (
-      confirm(
-        `Are you sure you want to CLOSE this statement cycle ("${cycle.title}")?\n\nThis will lock all transactions, making them permanently read-only for historical audit accuracy.`
-      )
-    ) {
-      setClosingLoading(true);
-      try {
-        await closeCycle(cycle.id);
-      } catch (err) {
-        const errorVal = err as { message?: string };
-        alert(errorVal?.message || "Failed to close statement.");
-      } finally {
-        setClosingLoading(false);
-      }
+    setClosingLoading(true);
+    try {
+      await closeCycle(cycle.id);
+      setCloseDialogOpen(false);
+    } catch (err) {
+      const errorVal = err as { message?: string };
+      alert(errorVal?.message || "Failed to close statement.");
+    } finally {
+      setClosingLoading(false);
     }
   };
 
@@ -220,7 +216,7 @@ export default function StatementDetailsPage() {
           ) : (
             <div className="flex flex-col items-end gap-1.5">
               <Button
-                onClick={handleCloseStatement}
+                onClick={() => setCloseDialogOpen(true)}
                 disabled={!canClose || closingLoading}
                 className={cn(
                   "h-10 px-5 font-semibold rounded-xl text-xs transition duration-150 cursor-pointer",
@@ -240,6 +236,19 @@ export default function StatementDetailsPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={closeDialogOpen} onOpenChange={setCloseDialogOpen}>
+        <DialogContent showCloseButton={!closingLoading} className="max-w-md gap-5 rounded-2xl border border-zinc-800 bg-[#111113] p-6 text-zinc-100 shadow-2xl">
+          <DialogHeader className="gap-2">
+            <DialogTitle className="text-lg font-bold text-white">Close statement?</DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed text-zinc-400">Close “{cycle?.title}” and lock its transactions permanently. You will still be able to view this statement, but cannot add, edit, or delete its transactions.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="-mx-6 -mb-6 border-zinc-800 bg-zinc-900/50 p-4 sm:flex-row">
+            <DialogClose render={<Button variant="outline" />} disabled={closingLoading} className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-800">Cancel</DialogClose>
+            <Button onClick={handleCloseStatement} disabled={closingLoading} className="bg-red-500 text-white hover:bg-red-600">{closingLoading ? "Closing..." : "Close statement"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Overall Summary Cards */}
       <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
