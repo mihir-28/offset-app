@@ -12,7 +12,7 @@ export function CardSwitcher({ className = "", compact = false }: { className?: 
   return (
     <Select value={activeCard.id} onValueChange={(cardId) => { if (cardId) void selectCard(cardId); }}>
       <SelectTrigger aria-label={`Switch card. Current card: ${activeCard.name}`} className={`h-12 w-full rounded-xl border-zinc-800 bg-zinc-900 px-3 text-sm font-semibold text-zinc-100 hover:bg-zinc-800 ${compact ? "w-11 justify-center gap-0 border-transparent bg-transparent px-0 hover:bg-zinc-900 data-[size=default]:h-11 dark:!bg-transparent dark:hover:!bg-zinc-900 [&>svg:last-child]:hidden" : ""} ${className}`}>
-        <CreditCard className="size-4 shrink-0 text-blue-400" />
+        <CreditCard className={`${compact ? "size-5.5" : "size-4"} shrink-0 text-blue-400`} />
         {!compact && <span className="min-w-0 flex-1 whitespace-normal text-left leading-tight">{activeCard.name}</span>}
       </SelectTrigger>
       <SelectContent align="end" className="w-auto min-w-64 rounded-xl border-zinc-800 bg-zinc-950 p-1 text-zinc-100 shadow-2xl">
