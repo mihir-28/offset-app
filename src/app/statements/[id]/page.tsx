@@ -297,11 +297,11 @@ export default function StatementDetailsPage() {
                 colors.cardBorder
               )}
             >
-              <div className={cn("pointer-events-none absolute -right-16 -top-16 h-40 w-64 -rotate-[25deg] blur-3xl", colors.shine)} />
+              <div className={cn("pointer-events-none absolute -right-16 -top-16 h-40 w-64 rotate-[-25deg] blur-3xl", colors.shine)} />
               <div className="relative z-10 flex items-center justify-between mb-4 border-b border-zinc-800/50 pb-3">
                 <div className="flex items-center gap-2">
                   <span className={cn("w-2 h-2 rounded-full", colors.solid)} />
-                  <span className="text-sm font-bold text-white tracking-wide truncate max-w-[120px]" title={b.name}>
+                  <span className="text-sm font-bold text-white tracking-wide truncate max-w-30" title={b.name}>
                     {b.name}
                   </span>
                 </div>
@@ -358,7 +358,7 @@ export default function StatementDetailsPage() {
                     bucketColors.hoverBorder
                   )}
                 >
-                  <div className={cn("pointer-events-none absolute -right-16 -top-16 h-32 w-52 -rotate-[25deg] blur-3xl", bucketColors.shine)} />
+                  <div className={cn("pointer-events-none absolute -right-16 -top-16 h-32 w-52 rotate-[-25deg] blur-3xl", bucketColors.shine)} />
                   <div className="relative z-10 flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold text-sm text-zinc-100 truncate">
