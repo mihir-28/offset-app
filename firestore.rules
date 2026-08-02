@@ -20,17 +20,20 @@ service cloud.firestore {
 
     match /cards/{cardId} {
       allow create: if ownsNew();
-      allow read, update: if ownsExisting() && request.resource.data.userId == resource.data.userId;
+      allow read: if ownsExisting();
+      allow update: if ownsExisting() && request.resource.data.userId == resource.data.userId;
     }
 
     match /transactions/{transactionId} {
       allow create: if ownsNew();
-      allow read, update: if ownsExisting() && request.resource.data.userId == resource.data.userId;
+      allow read: if ownsExisting();
+      allow update: if ownsExisting() && request.resource.data.userId == resource.data.userId;
     }
 
     match /statementCycles/{cycleId} {
       allow create: if ownsNew();
-      allow read, update: if ownsExisting() && request.resource.data.userId == resource.data.userId;
+      allow read: if ownsExisting();
+      allow update: if ownsExisting() && request.resource.data.userId == resource.data.userId;
     }
   }
 }
