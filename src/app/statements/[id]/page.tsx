@@ -98,7 +98,7 @@ export default function StatementDetailsPage() {
   }, [user, id, activeCard, router]);
 
   // Calculations
-  const buckets = profile?.buckets || ["HOME", "MINE"];
+  const buckets = activeCard?.buckets || profile?.buckets || ["HOME", "MINE"];
 
   const displayBuckets = [...buckets];
   transactions.forEach((t) => {

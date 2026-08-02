@@ -53,6 +53,7 @@ export interface CardData {
   userId: string;
   name: string;
   cycleStartDay: number;
+  buckets?: string[];
   archived?: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
@@ -77,6 +78,7 @@ interface EncryptedStatementPayload {
 interface EncryptedCardPayload {
   name: string;
   cycleStartDay: number;
+  buckets?: string[];
 }
 
 function toDate(value: unknown) {
@@ -109,15 +111,15 @@ async function encryptStatementPayload(userId: string, data: Omit<StatementCycle
   });
 }
 
-async function encryptCardPayload(userId: string, name: string, cycleStartDay: number) {
-  return encryptForUser<EncryptedCardPayload>(userId, { name, cycleStartDay });
+async function encryptCardPayload(userId: string, name: string, cycleStartDay: number, buckets: string[]) {
+  return encryptForUser<EncryptedCardPayload>(userId, { name, cycleStartDay, buckets });
 }
 
 export async function decryptCardDoc(data: DocumentData, fallbackId?: string): Promise<CardData> {
-  const payload = data.encryptedPayload
+  const payload: EncryptedCardPayload = data.encryptedPayload
     ? await decryptForUser<EncryptedCardPayload>(data.userId, data.encryptedPayload)
     : { name: data.name || "Card", cycleStartDay: Number(data.cycleStartDay) || 17 };
-  return { id: data.id || fallbackId || "", userId: data.userId, name: payload.name, cycleStartDay: payload.cycleStartDay, archived: Boolean(data.archived), createdAt: data.createdAt, updatedAt: data.updatedAt };
+  return { id: data.id || fallbackId || "", userId: data.userId, name: payload.name, cycleStartDay: payload.cycleStartDay, buckets: Array.isArray(payload.buckets) && payload.buckets.length ? payload.buckets : undefined, archived: Boolean(data.archived), createdAt: data.createdAt, updatedAt: data.updatedAt };
 }
 
 export async function getCards(userId: string): Promise<CardData[]> {
@@ -126,16 +128,16 @@ export async function getCards(userId: string): Promise<CardData[]> {
   return cards.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function createCard(userId: string, name: string, cycleStartDay = 17): Promise<CardData> {
+export async function createCard(userId: string, name: string, cycleStartDay = 17, buckets = ["HOME", "MINE"]): Promise<CardData> {
   const trimmedName = name.trim();
   if (!trimmedName) throw new Error("Card name is required.");
   const ref = doc(collection(db, "cards"));
-  await setDoc(ref, { id: ref.id, userId, archived: false, encryptedPayload: await encryptCardPayload(userId, trimmedName, cycleStartDay), encryptionVersion: 1, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  return { id: ref.id, userId, name: trimmedName, cycleStartDay, archived: false };
+  await setDoc(ref, { id: ref.id, userId, archived: false, encryptedPayload: await encryptCardPayload(userId, trimmedName, cycleStartDay, buckets), encryptionVersion: 1, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  return { id: ref.id, userId, name: trimmedName, cycleStartDay, buckets, archived: false };
 }
 
-export async function updateCard(userId: string, cardId: string, name: string, cycleStartDay: number): Promise<void> {
-  await updateDoc(doc(db, "cards", cardId), { encryptedPayload: await encryptCardPayload(userId, name.trim(), cycleStartDay), encryptionVersion: 1, updatedAt: serverTimestamp() });
+export async function updateCard(userId: string, cardId: string, name: string, cycleStartDay: number, buckets = ["HOME", "MINE"]): Promise<void> {
+  await updateDoc(doc(db, "cards", cardId), { encryptedPayload: await encryptCardPayload(userId, name.trim(), cycleStartDay, buckets), encryptionVersion: 1, updatedAt: serverTimestamp() });
 }
 
 export async function archiveCard(cardId: string): Promise<void> {
@@ -302,6 +304,79 @@ export async function migrateUserDataToCard(userId: string, cardId: string): Pro
     const batch = writeBatch(db);
     updates.slice(index, index + 400).forEach((item) => batch.update(item.ref, { cardId }));
     await batch.commit();
+  }
+}
+
+/**
+ * Moves legacy profile-level buckets onto each card and merges old duplicate
+ * statement documents into the deterministic cycle ID used by the app today.
+ */
+export async function migrateCardsAndCycles(userId: string, legacyBuckets: string[]): Promise<void> {
+  const cards = await getCards(userId);
+  for (const card of cards) {
+    if (!card.buckets?.length) {
+      await updateCard(userId, card.id, card.name, card.cycleStartDay, legacyBuckets);
+    }
+  }
+
+  const cycleSnap = await getDocs(query(collection(db, "statementCycles"), where("userId", "==", userId)));
+  const cycles = await Promise.all(cycleSnap.docs.map((cycle) => decryptStatementCycleDoc(cycle.data(), cycle.id)));
+  const groupedCycles = new Map<string, StatementCycleData[]>();
+  cycles.forEach((cycle) => {
+    const key = `${cycle.cardId}_${cycle.startDate.getTime()}_${cycle.endDate.getTime()}`;
+    groupedCycles.set(key, [...(groupedCycles.get(key) || []), cycle]);
+  });
+
+  for (const duplicates of groupedCycles.values()) {
+    if (duplicates.length < 2) continue;
+
+    const source = duplicates[0];
+    const canonicalId = `${userId}_${source.cardId}_${getCycleId(source.startDate)}`;
+    const canonicalCycle = duplicates.find((cycle) => cycle.id === canonicalId);
+    const mergedStatus = duplicates.some((cycle) => cycle.status === "CLOSED") ? "CLOSED" : "OPEN";
+
+    if (canonicalCycle) {
+      if (canonicalCycle.status !== mergedStatus) {
+        await updateDoc(doc(db, "statementCycles", canonicalId), {
+          encryptedPayload: await encryptStatementPayload(userId, { ...canonicalCycle, status: mergedStatus }),
+          encryptionVersion: 1,
+          ...deleteStatementPlainFields(),
+        });
+      }
+    } else {
+      await setDoc(doc(db, "statementCycles", canonicalId), {
+        id: canonicalId,
+        userId,
+        cardId: source.cardId,
+        encryptedPayload: await encryptStatementPayload(userId, { ...source, status: mergedStatus }),
+        encryptionVersion: 1,
+        createdAt: source.createdAt || serverTimestamp(),
+        ...deleteStatementPlainFields(),
+      });
+    }
+
+    const duplicateIds = new Set(duplicates.map((cycle) => cycle.id).filter((id) => id !== canonicalId));
+    const txSnap = await getDocs(query(
+      collection(db, "transactions"),
+      where("userId", "==", userId),
+      where("cardId", "==", source.cardId)
+    ));
+    const affectedTransactions = txSnap.docs.filter((transaction) => duplicateIds.has(transaction.data().cycleId));
+
+    for (let index = 0; index < affectedTransactions.length; index += 450) {
+      const batch = writeBatch(db);
+      affectedTransactions.slice(index, index + 450).forEach((transaction) => {
+        batch.update(transaction.ref, { cycleId: canonicalId, updatedAt: serverTimestamp() });
+      });
+      await batch.commit();
+    }
+
+    const duplicateRefs = duplicates.filter((cycle) => cycle.id !== canonicalId);
+    for (let index = 0; index < duplicateRefs.length; index += 450) {
+      const batch = writeBatch(db);
+      duplicateRefs.slice(index, index + 450).forEach((cycle) => batch.delete(doc(db, "statementCycles", cycle.id)));
+      await batch.commit();
+    }
   }
 }
 

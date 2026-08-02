@@ -34,6 +34,7 @@ service cloud.firestore {
       allow create: if ownsNew();
       allow read: if ownsExisting();
       allow update: if ownsExisting() && request.resource.data.userId == resource.data.userId;
+      allow delete: if ownsExisting();
     }
   }
 }

@@ -99,7 +99,17 @@ export default function StatementsPage() {
 
   // Compute metrics for each cycle
   const computedCycles = React.useMemo(() => {
-    return cycles.map((cycle) => {
+    const uniqueCycles = new Map<string, StatementCycleData>();
+    cycles.forEach((cycle) => {
+      const rangeKey = `${cycle.startDate.getTime()}_${cycle.endDate.getTime()}`;
+      const canonicalId = `${cycle.userId}_${cycle.cardId}_${cycle.startDate.toISOString().slice(0, 10)}`;
+      const existing = uniqueCycles.get(rangeKey);
+      if (!existing || cycle.id === canonicalId || (existing.id !== canonicalId && (cycle.createdAt?.toMillis() || 0) > (existing.createdAt?.toMillis() || 0))) {
+        uniqueCycles.set(rangeKey, cycle);
+      }
+    });
+
+    return [...uniqueCycles.values()].map((cycle) => {
       const cycleTx = txByCycle[cycle.id] || [];
       const txCount = cycleTx.length;
       

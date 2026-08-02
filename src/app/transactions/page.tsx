@@ -48,7 +48,7 @@ export default function TransactionsPage() {
   const [ownerFilter, setOwnerFilter] = useState<string>("ALL");
   const [cycleFilter, setCycleFilter] = useState<"CURRENT" | "ALL">("CURRENT");
 
-  const buckets = profile?.buckets || ["HOME", "MINE"];
+  const buckets = activeCard?.buckets || profile?.buckets || ["HOME", "MINE"];
   const cycleStartDay = activeCard?.cycleStartDay || 17;
 
   // Fetch cycles and transactions

@@ -59,7 +59,7 @@ export default function Dashboard() {
   const [quickOwner, setQuickOwner] = useState<string>("");
   const [quickLoading, setQuickLoading] = useState(false);
 
-  const buckets = useMemo(() => profile?.buckets || ["HOME", "MINE"], [profile?.buckets]);
+  const buckets = useMemo(() => activeCard?.buckets || profile?.buckets || ["HOME", "MINE"], [activeCard?.buckets, profile?.buckets]);
   const cycleStartDay = activeCard?.cycleStartDay || 17;
 
   // Initialize quickOwner when profile/buckets load

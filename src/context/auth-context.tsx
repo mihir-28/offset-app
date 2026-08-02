@@ -10,7 +10,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { auth, db, isConfigValid } from "../lib/firebase";
-import { CardData, createCard, getCards, migrateLegacyPlaintextData, migrateUserDataToCard } from "../lib/db-helpers";
+import { CardData, createCard, getCards, migrateCardsAndCycles, migrateLegacyPlaintextData, migrateUserDataToCard, updateCard } from "../lib/db-helpers";
 
 export interface UserProfile {
   id: string;
@@ -106,7 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (selectedCardId && selectedCardId !== savedActiveCardId) {
             await setDoc(userDocRef, { activeCardId: selectedCardId }, { merge: true });
           }
-          setCards(savedCards);
+          await migrateCardsAndCycles(firebaseUser.uid, dbBuckets);
+          setCards((await getCards(firebaseUser.uid)).filter((card) => !card.archived));
           setActiveCardId(selectedCardId || null);
           setProfile({
             ...userProfile,
@@ -164,10 +165,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateBuckets = async (newBuckets: string[]) => {
-    if (!user) return;
-    const userDocRef = doc(db, "users", user.uid);
-    await setDoc(userDocRef, { buckets: newBuckets }, { merge: true });
-    setProfile((prev) => prev ? { ...prev, buckets: newBuckets } : null);
+    if (!user || !activeCard) return;
+    await updateCard(user.uid, activeCard.id, activeCard.name, activeCard.cycleStartDay, newBuckets);
+    setCards((current) => current.map((card) => card.id === activeCard.id ? { ...card, buckets: newBuckets } : card));
   };
 
   const updateCycleStartDay = async (day: number) => {
@@ -186,7 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const completeCardSetup = async (name: string) => {
     if (!user || !profile) return;
-    const card = await createCard(user.uid, name, profile.cycleStartDay || 17);
+    const card = await createCard(user.uid, name, profile.cycleStartDay || 17, profile.buckets || ["HOME", "MINE"]);
     await migrateUserDataToCard(user.uid, card.id);
     await selectCard(card.id);
     setCards([card]);

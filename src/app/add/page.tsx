@@ -63,7 +63,7 @@ export default function AddTransactionPage() {
   const [amountExpression, setAmountExpression] = useState("");
   const [amountExpressionError, setAmountExpressionError] = useState("");
 
-  const buckets = useMemo(() => profile?.buckets || ["HOME", "MINE"], [profile?.buckets]);
+  const buckets = useMemo(() => activeCard?.buckets || profile?.buckets || ["HOME", "MINE"], [activeCard?.buckets, profile?.buckets]);
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),

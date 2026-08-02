@@ -43,7 +43,7 @@ export default function GeneralSettingsPage() {
   const [savingBuckets, setSavingBuckets] = useState(false);
   const [savingCycleDay, setSavingCycleDay] = useState(false);
 
-  const buckets = profile?.buckets || ["HOME", "MINE"];
+  const buckets = activeCard?.buckets || profile?.buckets || ["HOME", "MINE"];
   const cycleStartDay = activeCard?.cycleStartDay || 17;
 
   const formatOrdinal = (day: number) => {
@@ -115,7 +115,7 @@ export default function GeneralSettingsPage() {
       try {
         if (profile?.id && activeCard) {
           await migrateTransactionsToNewCycleDay(profile.id, activeCard.id, day);
-          await updateCard(profile.id, activeCard.id, activeCard.name, day);
+          await updateCard(profile.id, activeCard.id, activeCard.name, day, buckets);
           await refreshCards();
         }
       } catch (err) {
@@ -135,7 +135,7 @@ export default function GeneralSettingsPage() {
         </Link>
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white">General</h2>
-          <p className="mt-1 text-xs text-zinc-500">Buckets and billing cycle preferences.</p>
+          <p className="mt-1 text-xs text-zinc-500">Buckets and billing-cycle preferences for {activeCard?.name || "this card"}.</p>
         </div>
       </div>
 
