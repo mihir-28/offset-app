@@ -73,21 +73,21 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       <Sidebar />
 
       {/* Mobile Header (hidden on Desktop) */}
-      <header className="md:hidden sticky top-0 z-40 border-b border-zinc-800/40 bg-[#09090B]/90 px-5 py-4 backdrop-blur-md">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
+      <header className="md:hidden sticky top-0 z-40 border-b border-zinc-800/40 bg-[#09090B]/90 px-5 py-3 backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center space-x-2.5">
           <BrandMark className="h-8 w-8 rounded-lg border-blue-400/20 shadow-none shrink-0" />
           <span className="text-lg font-bold tracking-tight text-white font-sans bg-clip-text bg-linear-to-r from-white via-zinc-100 to-sky-200">
             Offset
           </span>
           </div>
+          <CardSwitcher className="min-w-0 flex-1 py-2 text-xs" />
           {user && (
           <Link href="/settings" className="p-1.5 text-zinc-400 hover:text-white transition-colors cursor-pointer" title="Settings">
             <Settings className="w-5.5 h-5.5" />
           </Link>
           )}
         </div>
-        <CardSwitcher className="mt-4" />
       </header>
 
       {/* Main Content Area */}
