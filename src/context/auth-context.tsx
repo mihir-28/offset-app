@@ -35,6 +35,7 @@ interface AuthContextType {
   activeCard: CardData | null;
   selectCard: (cardId: string) => Promise<void>;
   completeCardSetup: (name: string) => Promise<void>;
+  createAndSelectCard: (name: string) => Promise<void>;
   refreshCards: () => Promise<void>;
 }
 
@@ -191,6 +192,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCards([card]);
   };
 
+  const createAndSelectCard = async (name: string) => {
+    if (!user) return;
+    const card = await createCard(user.uid, name);
+    setCards((current) => [...current, card].sort((a, b) => a.name.localeCompare(b.name)));
+    await selectCard(card.id);
+  };
+
   const activeCard = cards.find((card) => card.id === activeCardId) || null;
 
   return (
@@ -207,6 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeCard,
         selectCard,
         completeCardSetup,
+        createAndSelectCard,
         refreshCards,
       }}
     >

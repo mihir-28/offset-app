@@ -10,9 +10,10 @@ import InstallToast from "./InstallToast";
 import { BrandMark } from "./brand-mark";
 import { Settings } from "lucide-react";
 import { CardSetupDialog } from "./card-setup-dialog";
+import { CardSwitcher } from "./card-switcher";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
-  const { user, loading, cards, activeCard, selectCard } = useAuth();
+  const { user, loading, cards } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const isPublicRoute = pathname === "/login" || pathname === "/privacy" || pathname === "/terms";
@@ -72,19 +73,21 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       <Sidebar />
 
       {/* Mobile Header (hidden on Desktop) */}
-      <header className="md:hidden flex items-center justify-between px-6 py-4 sticky top-0 z-40 bg-[#09090B]/60 backdrop-blur-md border-b border-zinc-800/40 relative">
-        <div className="flex items-center space-x-2.5">
+      <header className="md:hidden sticky top-0 z-40 border-b border-zinc-800/40 bg-[#09090B]/90 px-5 py-4 backdrop-blur-md">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
           <BrandMark className="h-8 w-8 rounded-lg border-blue-400/20 shadow-none shrink-0" />
           <span className="text-lg font-bold tracking-tight text-white font-sans bg-clip-text bg-linear-to-r from-white via-zinc-100 to-sky-200">
             Offset
           </span>
-        </div>
-        {activeCard && <select aria-label="Active card" value={activeCard.id} onChange={(event) => void selectCard(event.target.value)} className="ml-auto mr-3 max-w-28 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-[10px] text-zinc-200"><option value={activeCard.id}>{activeCard.name}</option>{cards.filter((card) => card.id !== activeCard.id).map((card) => <option key={card.id} value={card.id}>{card.name}</option>)}</select>}
-        {user && (
+          </div>
+          {user && (
           <Link href="/settings" className="p-1.5 text-zinc-400 hover:text-white transition-colors cursor-pointer" title="Settings">
             <Settings className="w-5.5 h-5.5" />
           </Link>
-        )}
+          )}
+        </div>
+        <CardSwitcher className="mt-4" />
       </header>
 
       {/* Main Content Area */}
