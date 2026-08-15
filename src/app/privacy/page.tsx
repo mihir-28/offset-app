@@ -28,6 +28,10 @@ const sections = [
     body: "We do not sell your data, rent your data, or share it with advertisers. Your data is used to run Offset and show your own records back to you.",
   },
   {
+    title: "Account Deletion",
+    body: "You can permanently delete your account from Settings > Account > Delete Account. This removes your profile, cards, transactions, and statements from Offset.",
+  },
+  {
     title: "Contact",
     body: `Questions about privacy can be sent to ${siteConfig.email}.`,
   },

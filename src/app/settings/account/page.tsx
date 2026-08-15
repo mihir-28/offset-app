@@ -2,13 +2,17 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, LogOut, Mail, User } from "lucide-react";
+import { AlertTriangle, ArrowLeft, LogOut, Mail, Trash2, User } from "lucide-react";
 import { useAuth } from "../../../context/auth-context";
 import { Button } from "../../../components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 
 export default function AccountSettingsPage() {
-  const { profile, logout } = useAuth();
+  const { profile, logout, deleteAccount } = useAuth();
   const [logoutLoading, setLogoutLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleLogout = async () => {
     setLogoutLoading(true);
@@ -17,6 +21,20 @@ export default function AccountSettingsPage() {
     } catch (err) {
       console.error("Logout error:", err);
       setLogoutLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    setDeleteError(null);
+
+    try {
+      await deleteAccount();
+      setDeleteDialogOpen(false);
+    } catch (err) {
+      console.error("Account deletion error:", err);
+      setDeleteError("Could not delete your account. Please try again.");
+      setDeleteLoading(false);
     }
   };
 
@@ -72,6 +90,41 @@ export default function AccountSettingsPage() {
           </Button>
         </div>
       </section>
+
+      <section className="overflow-hidden rounded-2xl border border-red-500/20 bg-red-500/5">
+        <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h4 className="text-sm font-bold text-red-300">Delete Account</h4>
+            <p className="mt-0.5 text-xs text-zinc-500">Permanently remove your Offset account and stored data.</p>
+          </div>
+          <Button
+            onClick={() => setDeleteDialogOpen(true)}
+            className="h-10 rounded-xl border border-red-500/20 bg-red-500/10 px-5 text-xs font-semibold text-red-400 hover:bg-red-500/20"
+          >
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete Account
+          </Button>
+        </div>
+      </section>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent showCloseButton={!deleteLoading} className="max-w-md gap-5 rounded-2xl border border-red-500/20 bg-[#111113] p-6 text-zinc-100 shadow-2xl">
+          <DialogHeader className="gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-white">
+              <AlertTriangle className="h-5 w-5 text-red-400" /> Delete account?
+            </DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed text-zinc-400">
+              This permanently deletes your profile, cards, transactions, and statements. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && <p className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-300">{deleteError}</p>}
+          <DialogFooter className="-mx-6 -mb-6 border-zinc-800 bg-zinc-900/50 p-4 sm:flex-row">
+            <DialogClose render={<Button variant="outline" />} disabled={deleteLoading} className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-800">Cancel</DialogClose>
+            <Button onClick={handleDeleteAccount} disabled={deleteLoading} className="bg-red-500 text-white hover:bg-red-600">
+              {deleteLoading ? "Deleting..." : "Delete Account"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

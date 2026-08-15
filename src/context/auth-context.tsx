@@ -12,7 +12,8 @@ import {
 import { Capacitor } from "@capacitor/core";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
-import { auth, db, isConfigValid } from "../lib/firebase";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app, auth, db, isConfigValid } from "../lib/firebase";
 import { CardData, createCard, getCards, migrateCardsAndCycles, migrateLegacyPlaintextData, migrateUserDataToCard, updateCard } from "../lib/db-helpers";
 
 export interface UserProfile {
@@ -32,6 +33,7 @@ interface AuthContextType {
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   updateBuckets: (newBuckets: string[]) => Promise<void>;
   updateCycleStartDay: (day: number) => Promise<void>;
   cards: CardData[];
@@ -180,6 +182,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const deleteAccount = async () => {
+    const deleteAccountCall = httpsCallable<{ [key: string]: never }, { deleted: boolean }>(
+      getFunctions(app),
+      "deleteAccount"
+    );
+
+    await deleteAccountCall({});
+    await signOut(auth);
+
+    if (Capacitor.isNativePlatform()) {
+      await FirebaseAuthentication.signOut();
+    }
+  };
+
   const updateBuckets = async (newBuckets: string[]) => {
     if (!user || !activeCard) return;
     await updateCard(user.uid, activeCard.id, activeCard.name, activeCard.cycleStartDay, newBuckets);
@@ -225,6 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         loginWithGoogle,
         logout,
+        deleteAccount,
         updateBuckets,
         updateCycleStartDay,
         cards,
