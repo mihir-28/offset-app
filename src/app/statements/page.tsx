@@ -188,7 +188,7 @@ export default function StatementsPage() {
             return (
               <Link
                 key={c.id}
-                href={`/statements/${c.id}`}
+                href={`/statements/detail?cycleId=${encodeURIComponent(c.id)}`}
                 className={cn(
                   "bg-[#111113] border border-zinc-800 hover:border-zinc-700/80 p-5 rounded-2xl flex items-center justify-between gap-6 transition-all group relative overflow-hidden",
                   isClosed && "opacity-90 border-dashed"

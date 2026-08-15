@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
 import { BrandMark } from "./brand-mark";
 import { Share2, Download } from "lucide-react";
@@ -75,6 +76,8 @@ export default function InstallToast() {
   };
 
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) return;
+
     if (typeof window === "undefined") return;
     if (isStandalone()) return;
     if (checkDismissed()) return;

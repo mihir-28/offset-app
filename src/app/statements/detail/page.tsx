@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../context/auth-context";
 import { db } from "../../../lib/firebase";
 import { closeCycle, StatementCycleData, TransactionData, decryptTransactionDoc, decryptStatementCycleDoc } from "../../../lib/db-helpers";
@@ -35,7 +35,8 @@ const getBucketColor = (bucketName: string) => {
 
 export default function StatementDetailsPage() {
   const { user, profile, activeCard } = useAuth();
-  const { id } = useParams() as { id: string };
+  const searchParams = useSearchParams();
+  const id = searchParams.get("cycleId");
   const router = useRouter();
 
   const [cycle, setCycle] = useState<StatementCycleData | null>(null);
