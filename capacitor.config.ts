@@ -7,6 +7,12 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
   },
+  plugins: {
+    FirebaseAuthentication: {
+      providers: ["google.com"],
+      skipNativeAuth: true,
+    },
+  },
 };
 
 export default config;

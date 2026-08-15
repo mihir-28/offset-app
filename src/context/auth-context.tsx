@@ -3,11 +3,14 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   GoogleAuthProvider,
+  signInWithCredential,
   signInWithPopup,
   signOut,
   onAuthStateChanged,
   User as FirebaseUser,
 } from "firebase/auth";
+import { Capacitor } from "@capacitor/core";
+import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { auth, db, isConfigValid } from "../lib/firebase";
 import { CardData, createCard, getCards, migrateCardsAndCycles, migrateLegacyPlaintextData, migrateUserDataToCard, updateCard } from "../lib/db-helpers";
@@ -143,9 +146,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = async () => {
     setLoading(true);
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      if (Capacitor.isNativePlatform()) {
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        const idToken = result.credential?.idToken;
+
+        if (!idToken) {
+          throw new Error("Google sign-in did not return an ID token.");
+        }
+
+        await signInWithCredential(auth, GoogleAuthProvider.credential(idToken));
+      } else {
+        await signInWithPopup(auth, new GoogleAuthProvider());
+      }
     } catch (error) {
       console.error("Error signing in with Google:", error);
       setLoading(false);
@@ -157,6 +170,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       await signOut(auth);
+      if (Capacitor.isNativePlatform()) {
+        await FirebaseAuthentication.signOut();
+      }
     } catch (error) {
       console.error("Error signing out:", error);
       setLoading(false);
