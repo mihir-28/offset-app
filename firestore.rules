@@ -15,19 +15,21 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read, create, update: if signedIn() && request.auth.uid == userId;
+      allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
     }
 
     match /cards/{cardId} {
       allow create: if ownsNew();
       allow read: if ownsExisting();
       allow update: if ownsExisting() && request.resource.data.userId == resource.data.userId;
+      allow delete: if ownsExisting();
     }
 
     match /transactions/{transactionId} {
       allow create: if ownsNew();
       allow read: if ownsExisting();
       allow update: if ownsExisting() && request.resource.data.userId == resource.data.userId;
+      allow delete: if ownsExisting();
     }
 
     match /statementCycles/{cycleId} {

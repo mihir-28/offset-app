@@ -6,14 +6,14 @@ import {
   signInWithCredential,
   signInWithPopup,
   signOut,
+  deleteUser,
   onAuthStateChanged,
   User as FirebaseUser,
 } from "firebase/auth";
 import { Capacitor } from "@capacitor/core";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
-import { getFunctions, httpsCallable } from "firebase/functions";
-import { app, auth, db, isConfigValid } from "../lib/firebase";
+import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from "firebase/firestore";
+import { auth, db, isConfigValid } from "../lib/firebase";
 import { CardData, createCard, getCards, migrateCardsAndCycles, migrateLegacyPlaintextData, migrateUserDataToCard, updateCard } from "../lib/db-helpers";
 
 export interface UserProfile {
@@ -45,6 +45,22 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const USER_DATA_COLLECTIONS = ["cards", "statementCycles", "transactions"] as const;
+
+async function deleteUserCollection(userId: string, collectionName: (typeof USER_DATA_COLLECTIONS)[number]) {
+  while (true) {
+    const snapshot = await getDocs(
+      query(collection(db, collectionName), where("userId", "==", userId), limit(400))
+    );
+
+    if (snapshot.empty) return;
+
+    const batch = writeBatch(db);
+    snapshot.docs.forEach((document) => batch.delete(document.ref));
+    await batch.commit();
+  }
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -183,16 +199,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteAccount = async () => {
-    const deleteAccountCall = httpsCallable<{ [key: string]: never }, { deleted: boolean }>(
-      getFunctions(app),
-      "deleteAccount"
-    );
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error("Sign in before deleting an account.");
+    }
 
-    await deleteAccountCall({});
-    await signOut(auth);
+    for (const collectionName of USER_DATA_COLLECTIONS) {
+      await deleteUserCollection(currentUser.uid, collectionName);
+    }
+
+    await deleteDoc(doc(db, "users", currentUser.uid));
+    await deleteUser(currentUser);
 
     if (Capacitor.isNativePlatform()) {
-      await FirebaseAuthentication.signOut();
+      await FirebaseAuthentication.signOut().catch((error) => {
+        console.error("Native Google sign-out after account deletion failed:", error);
+      });
     }
   };
 

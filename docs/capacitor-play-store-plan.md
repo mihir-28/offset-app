@@ -226,8 +226,8 @@ Google Play requires a deletion path for apps that create accounts.
 
 1. Add visible **Delete account** action in Settings -> Account.
 2. Require clear confirmation.
-3. Use trusted backend/Admin-function deletion to remove all user Firestore data, including future collections/subcollections, then delete Firebase Authentication account.
-4. Do not treat sign-out or account disablement as deletion.
+3. Delete user-owned data from `cards`, `transactions`, `statementCycles`, and `users/{uid}` in Firestore batches, then delete the Firebase Authentication account.
+4. Keep the collection list in sync with future user-data collections. Do not treat sign-out or account disablement as deletion.
 5. Add public deletion support URL/process if requested by Play Console.
 
 ### Privacy policy and Data Safety

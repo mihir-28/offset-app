@@ -33,7 +33,12 @@ export default function AccountSettingsPage() {
       setDeleteDialogOpen(false);
     } catch (err) {
       console.error("Account deletion error:", err);
-      setDeleteError("Could not delete your account. Please try again.");
+      const error = err as { code?: string };
+      setDeleteError(
+        error.code === "auth/requires-recent-login"
+          ? "Sign out, sign in again, then retry account deletion."
+          : "Could not delete your account. Please try again."
+      );
       setDeleteLoading(false);
     }
   };
