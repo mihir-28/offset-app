@@ -8,8 +8,8 @@
         android:shortcutLongLabel="@string/shortcut_transactions_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="${applicationId}"
-            android:targetClass="${applicationId}.MainActivity"
+            android:targetPackage="com.afterthought.offset"
+            android:targetClass="com.afterthought.offset.MainActivity"
             android:data="https://offset-app.mihirnagda.in/transactions" />
     </shortcut>
     <shortcut
@@ -20,8 +20,8 @@
         android:shortcutLongLabel="@string/shortcut_statements_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="${applicationId}"
-            android:targetClass="${applicationId}.MainActivity"
+            android:targetPackage="com.afterthought.offset"
+            android:targetClass="com.afterthought.offset.MainActivity"
             android:data="https://offset-app.mihirnagda.in/statements" />
     </shortcut>
     <shortcut
@@ -32,8 +32,8 @@
         android:shortcutLongLabel="@string/shortcut_settings_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="${applicationId}"
-            android:targetClass="${applicationId}.MainActivity"
+            android:targetPackage="com.afterthought.offset"
+            android:targetClass="com.afterthought.offset.MainActivity"
             android:data="https://offset-app.mihirnagda.in/settings" />
     </shortcut>
     <shortcut
@@ -44,8 +44,8 @@
         android:shortcutLongLabel="@string/shortcut_add_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="${applicationId}"
-            android:targetClass="${applicationId}.MainActivity"
+            android:targetPackage="com.afterthought.offset"
+            android:targetClass="com.afterthought.offset.MainActivity"
             android:data="https://offset-app.mihirnagda.in/add" />
     </shortcut>
 </shortcuts>
