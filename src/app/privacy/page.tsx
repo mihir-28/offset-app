@@ -41,8 +41,7 @@ export default function PrivacyPage() {
       <div className="mx-auto w-full max-w-6xl">
         <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-[#111113]">
           <div className="border-b border-zinc-800/70 px-4 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-blue-400">Privacy Policy</p>
-            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-white">Privacy Policy</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-white">Privacy Policy</h1>
             <p className="mt-2 text-xs text-zinc-500">Last updated: June 27, 2026</p>
           </div>
           <div className="grid lg:grid-cols-2">
