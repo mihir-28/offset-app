@@ -96,15 +96,16 @@ export default function AccountSettingsPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-red-500/20 bg-red-500/5">
-        <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h4 className="text-sm font-bold text-red-300">Delete Account</h4>
-            <p className="mt-0.5 text-xs text-zinc-500">Permanently remove your Offset account and stored data.</p>
+      <section className="rounded-2xl border border-zinc-800 bg-[#111113] p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-red-400">Danger zone</p>
+        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h4 className="text-sm font-bold text-zinc-100">Delete account</h4>
+            <p className="mt-0.5 max-w-xs text-xs leading-relaxed text-zinc-500">Permanently remove your Offset account and stored data.</p>
           </div>
           <Button
             onClick={() => setDeleteDialogOpen(true)}
-            className="h-10 rounded-xl border border-red-500/20 bg-red-500/10 px-5 text-xs font-semibold text-red-400 hover:bg-red-500/20"
+            className="h-9 shrink-0 rounded-lg border border-red-500/30 bg-transparent px-4 text-xs font-semibold text-red-400 hover:bg-red-500/10"
           >
             <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete Account
           </Button>

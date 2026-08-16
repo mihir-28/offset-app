@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Settings, User, Info, CreditCard } from "lucide-react";
+import { ChevronRight, Settings, User, Info, CreditCard, FileText, ShieldCheck } from "lucide-react";
 
 const settingsRows = [
     {
@@ -27,6 +27,18 @@ const settingsRows = [
         title: "About",
         description: "App, developer, and contact details",
         icon: Info,
+    },
+    {
+        href: "/privacy",
+        title: "Privacy",
+        description: "How Offset handles your data",
+        icon: ShieldCheck,
+    },
+    {
+        href: "/terms",
+        title: "Terms",
+        description: "Terms for using Offset",
+        icon: FileText,
     },
 ];
 
