@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { BrandMark } from "../../components/brand-mark";
 import { siteConfig } from "../../lib/siteConfig";
 
 const sections = [
@@ -35,13 +33,8 @@ const sections = [
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-[#09090B] px-6 py-5 text-zinc-100">
-      <div className="mx-auto w-full max-w-6xl space-y-4">
-        <Link href="/login" className="inline-flex items-center gap-3 text-sm font-semibold text-zinc-300 hover:text-white">
-          <BrandMark className="h-9 w-9 rounded-xl border-blue-400/20 shadow-none" />
-          Offset
-        </Link>
-
+    <main className="min-h-screen bg-[#09090B] px-5 py-4 text-zinc-100 sm:px-6 sm:py-5">
+      <div className="mx-auto w-full max-w-6xl">
         <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-[#111113]">
           <div className="border-b border-zinc-800/70 px-4 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-blue-400">Terms of Service</p>

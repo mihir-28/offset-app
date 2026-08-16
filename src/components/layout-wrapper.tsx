@@ -17,6 +17,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const router = useRouter();
   const pathname = usePathname();
   const isPublicRoute = pathname === "/login" || pathname === "/privacy" || pathname === "/terms";
+  const isLegalRoute = pathname === "/privacy" || pathname === "/terms";
 
   useEffect(() => {
     if (!loading) {
@@ -94,7 +95,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen md:pl-76 relative z-10">
-        <main className="flex-1 px-6 py-5 pb-24 md:pb-5 max-w-7xl w-full mx-auto">
+        <main className={`flex-1 pb-24 md:pb-5 max-w-7xl w-full mx-auto ${isLegalRoute ? "" : "px-6 py-5"}`}>
           {children}
         </main>
       </div>
