@@ -81,20 +81,21 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     );
   }
 
-  // Not logged in -> allow public pages only.
-  if (!user) {
-    return isPublicRoute ? (
-      <div className="min-h-screen bg-[#09090B] text-white flex flex-col relative overflow-hidden">
-        {/* Ambient background glow for Login */}
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          <div className="absolute top-[-10%] left-[-10%] w-[55vw] h-[55vw] rounded-full bg-white/2 blur-[130px]"></div>
-          <div className="absolute bottom-[-15%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-blue-500/2 blur-[140px]"></div>
+  // Public pages always use a neutral shell, including for signed-in visitors.
+  if (isPublicRoute) {
+    return (
+      <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#09090B] text-white">
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+          <div className="absolute top-[-10%] left-[-10%] h-[55vw] w-[55vw] rounded-full bg-white/2 blur-[130px]" />
+          <div className="absolute right-[-10%] bottom-[-15%] h-[60vw] w-[60vw] rounded-full bg-blue-500/2 blur-[140px]" />
         </div>
-        <div className="relative z-10 flex-1 flex flex-col">{children}</div>
+        <div className="relative z-10 flex flex-1 flex-col">{children}</div>
       </div>
-    ) : (
-      <div className="h-screen w-screen bg-[#09090B]" />
     );
+  }
+
+  if (!user) {
+    return <div className="h-screen w-screen bg-[#09090B]" />;
   }
 
   // Logged in layout
