@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../context/auth-context";
 import { db } from "../lib/firebase";
 import { getCycleBounds, getCycleId } from "../lib/cycle-utils";
-import { getOrCreateCycle, deleteTransaction, TransactionData, StatementCycleData, decryptTransactionDoc, decryptStatementCycleDoc } from "../lib/db-helpers";
+import { DEFAULT_BUCKETS, getOrCreateCycle, deleteTransaction, TransactionData, StatementCycleData, decryptTransactionDoc, decryptStatementCycleDoc } from "../lib/db-helpers";
 import {
   collection,
   query,
@@ -59,7 +59,7 @@ export default function Dashboard() {
   const [quickOwner, setQuickOwner] = useState<string>("");
   const [quickLoading, setQuickLoading] = useState(false);
 
-  const buckets = useMemo(() => activeCard?.buckets || profile?.buckets || ["HOME", "MINE"], [activeCard?.buckets, profile?.buckets]);
+  const buckets = useMemo(() => activeCard?.buckets || profile?.buckets || DEFAULT_BUCKETS, [activeCard?.buckets, profile?.buckets]);
   const cycleStartDay = activeCard?.cycleStartDay || 17;
 
   // Initialize quickOwner when profile/buckets load

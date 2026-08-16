@@ -14,7 +14,7 @@ import { Capacitor } from "@capacitor/core";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from "firebase/firestore";
 import { auth, db, isConfigValid } from "../lib/firebase";
-import { CardData, createCard, getCards, migrateCardsAndCycles, migrateLegacyPlaintextData, migrateUserDataToCard, updateCard } from "../lib/db-helpers";
+import { CardData, createCard, DEFAULT_BUCKETS, getCards, migrateCardsAndCycles, migrateLegacyPlaintextData, migrateUserDataToCard, updateCard } from "../lib/db-helpers";
 
 export interface UserProfile {
   id: string;
@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Attempt to get user first. If offline, this might get from cache or fail.
           const docSnap = await getDoc(userDocRef);
           const existingProfile = docSnap.exists() ? docSnap.data() : {};
-          let dbBuckets = ["HOME", "MINE"];
+          let dbBuckets = DEFAULT_BUCKETS;
           let dbCycleStartDay = 17;
 
           if (docSnap.exists()) {
@@ -146,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Fallback to local profile info so offline works
           setProfile({
             ...userProfile,
-            buckets: ["HOME", "MINE"],
+            buckets: DEFAULT_BUCKETS,
             cycleStartDay: 17,
           });
           setLoading(false);
@@ -240,7 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const completeCardSetup = async (name: string) => {
     if (!user || !profile) return;
-    const card = await createCard(user.uid, name, profile.cycleStartDay || 17, profile.buckets || ["HOME", "MINE"]);
+    const card = await createCard(user.uid, name, profile.cycleStartDay || 17, profile.buckets || DEFAULT_BUCKETS);
     await migrateUserDataToCard(user.uid, card.id);
     await selectCard(card.id);
     setCards([card]);

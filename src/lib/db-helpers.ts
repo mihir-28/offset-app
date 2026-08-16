@@ -19,6 +19,8 @@ import { db } from "./firebase";
 import { getCycleBounds, getCycleId, getCycleTitle } from "./cycle-utils";
 import { EncryptedPayload, decryptForUser, encryptForUser, hasEncryptedPayload } from "./crypto";
 
+export const DEFAULT_BUCKETS = ["Default"];
+
 export interface TransactionData {
   id?: string;
   userId: string;
@@ -128,7 +130,7 @@ export async function getCards(userId: string): Promise<CardData[]> {
   return cards.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function createCard(userId: string, name: string, cycleStartDay = 17, buckets = ["HOME", "MINE"]): Promise<CardData> {
+export async function createCard(userId: string, name: string, cycleStartDay = 17, buckets = DEFAULT_BUCKETS): Promise<CardData> {
   const trimmedName = name.trim();
   if (!trimmedName) throw new Error("Card name is required.");
   const ref = doc(collection(db, "cards"));
@@ -136,7 +138,7 @@ export async function createCard(userId: string, name: string, cycleStartDay = 1
   return { id: ref.id, userId, name: trimmedName, cycleStartDay, buckets, archived: false };
 }
 
-export async function updateCard(userId: string, cardId: string, name: string, cycleStartDay: number, buckets = ["HOME", "MINE"]): Promise<void> {
+export async function updateCard(userId: string, cardId: string, name: string, cycleStartDay: number, buckets = DEFAULT_BUCKETS): Promise<void> {
   await updateDoc(doc(db, "cards", cardId), { encryptedPayload: await encryptCardPayload(userId, name.trim(), cycleStartDay, buckets), encryptionVersion: 1, updatedAt: serverTimestamp() });
 }
 

@@ -9,7 +9,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { Calendar as CalendarIcon, ChevronLeft, Trash2 } from "lucide-react";
 import { useAuth } from "../../context/auth-context";
 import { db } from "../../lib/firebase";
-import { addTransaction, updateTransaction, deleteTransaction, TransactionData, decryptTransactionDoc } from "../../lib/db-helpers";
+import { addTransaction, updateTransaction, DEFAULT_BUCKETS, deleteTransaction, TransactionData, decryptTransactionDoc } from "../../lib/db-helpers";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Calendar } from "../../components/ui/calendar";
@@ -63,7 +63,7 @@ export default function AddTransactionPage() {
   const [amountExpression, setAmountExpression] = useState("");
   const [amountExpressionError, setAmountExpressionError] = useState("");
 
-  const buckets = useMemo(() => activeCard?.buckets || profile?.buckets || ["HOME", "MINE"], [activeCard?.buckets, profile?.buckets]);
+  const buckets = useMemo(() => activeCard?.buckets || profile?.buckets || DEFAULT_BUCKETS, [activeCard?.buckets, profile?.buckets]);
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),

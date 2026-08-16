@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
-import { migrateTransactionsToNewCycleDay, updateCard } from "../../../lib/db-helpers";
+import { DEFAULT_BUCKETS, migrateTransactionsToNewCycleDay, updateCard } from "../../../lib/db-helpers";
 import { cn } from "../../../lib/utils";
 
 const getBucketColor = (bucketName: string) => {
@@ -43,7 +43,7 @@ export default function GeneralSettingsPage() {
   const [savingBuckets, setSavingBuckets] = useState(false);
   const [savingCycleDay, setSavingCycleDay] = useState(false);
 
-  const buckets = activeCard?.buckets || profile?.buckets || ["HOME", "MINE"];
+  const buckets = activeCard?.buckets || profile?.buckets || DEFAULT_BUCKETS;
   const cycleStartDay = activeCard?.cycleStartDay || 17;
 
   const formatOrdinal = (day: number) => {
@@ -169,19 +169,19 @@ export default function GeneralSettingsPage() {
           })}
         </div>
 
-        <form onSubmit={handleAddBucket} className="flex flex-col gap-2 sm:flex-row">
+        <form onSubmit={handleAddBucket} className="space-y-2">
           <Input
             type="text"
             placeholder="New bucket name"
             value={newBucketName}
             onChange={(e) => setNewBucketName(e.target.value)}
             required
-            className="h-10 flex-1 rounded-xl border-zinc-800 bg-zinc-900 text-xs text-zinc-100 placeholder:text-zinc-650"
+            className="h-12 w-full rounded-xl border-zinc-800 bg-zinc-900 px-4 text-sm text-zinc-100 placeholder:text-zinc-500"
           />
           <Button
             type="submit"
             disabled={!newBucketName.trim() || savingBuckets}
-            className="h-10 shrink-0 rounded-xl bg-blue-500 px-5 text-xs font-semibold text-black hover:bg-blue-600"
+            className="h-12 w-full rounded-xl bg-blue-500 px-5 text-sm font-semibold text-black hover:bg-blue-600"
           >
             {savingBuckets ? "Saving..." : "Add Bucket"}
           </Button>

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../context/auth-context";
 import { db } from "../../../lib/firebase";
-import { closeCycle, StatementCycleData, TransactionData, decryptTransactionDoc, decryptStatementCycleDoc } from "../../../lib/db-helpers";
+import { closeCycle, DEFAULT_BUCKETS, StatementCycleData, TransactionData, decryptTransactionDoc, decryptStatementCycleDoc } from "../../../lib/db-helpers";
 import { doc, collection, query, where, onSnapshot } from "firebase/firestore";
 import { ArrowLeft, Lock, Unlock, Calendar, AlertCircle, ShieldCheck, ArrowUpRight, ArrowDownLeft, Receipt } from "lucide-react";
 import { Button } from "../../../components/ui/button";
@@ -99,7 +99,7 @@ export default function StatementDetailsPage() {
   }, [user, id, activeCard, router]);
 
   // Calculations
-  const buckets = activeCard?.buckets || profile?.buckets || ["HOME", "MINE"];
+  const buckets = activeCard?.buckets || profile?.buckets || DEFAULT_BUCKETS;
 
   const displayBuckets = [...buckets];
   transactions.forEach((t) => {

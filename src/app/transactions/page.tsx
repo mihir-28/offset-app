@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/auth-context";
 import { db } from "../../lib/firebase";
 import { getCycleBounds, getCycleId } from "../../lib/cycle-utils";
-import { deleteTransaction, TransactionData, StatementCycleData, decryptTransactionDoc, decryptStatementCycleDoc } from "../../lib/db-helpers";
+import { DEFAULT_BUCKETS, deleteTransaction, TransactionData, StatementCycleData, decryptTransactionDoc, decryptStatementCycleDoc } from "../../lib/db-helpers";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { Search, Plus, Edit2, Trash2, Lock } from "lucide-react";
 import { Button } from "../../components/ui/button";
@@ -48,7 +48,7 @@ export default function TransactionsPage() {
   const [ownerFilter, setOwnerFilter] = useState<string>("ALL");
   const [cycleFilter, setCycleFilter] = useState<"CURRENT" | "ALL">("CURRENT");
 
-  const buckets = activeCard?.buckets || profile?.buckets || ["HOME", "MINE"];
+  const buckets = activeCard?.buckets || profile?.buckets || DEFAULT_BUCKETS;
   const cycleStartDay = activeCard?.cycleStartDay || 17;
 
   // Fetch cycles and transactions
