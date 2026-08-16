@@ -114,9 +114,11 @@
     }
     body {
         @apply bg-background text-foreground font-body;
+        padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
     }
     html {
         @apply font-sans;
+        background: #09090b;
     }
 }
 
