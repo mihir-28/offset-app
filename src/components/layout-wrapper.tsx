@@ -20,12 +20,14 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const isLegalRoute = pathname === "/privacy" || pathname === "/terms";
 
   useEffect(() => {
-    if (!loading) {
-      if (!user && !isPublicRoute) {
-        router.replace("/login");
-      } else if (user && pathname === "/login") {
-        router.replace("/");
-      }
+    // Redirect authenticated users immediately; profile/card hydration can finish in the background.
+    if (user && pathname === "/login") {
+      router.replace("/");
+      return;
+    }
+
+    if (!loading && !user && !isPublicRoute) {
+      router.replace("/login");
     }
   }, [user, loading, pathname, router, isPublicRoute]);
 

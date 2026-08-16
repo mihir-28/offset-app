@@ -8,6 +8,11 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
   },
   plugins: {
+    StatusBar: {
+      overlaysWebView: false,
+      style: "DARK",
+      backgroundColor: "#09090B",
+    },
     FirebaseAuthentication: {
       providers: ["google.com"],
       skipNativeAuth: true,
