@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React, { useState } from "react";
-import { ArrowLeft, Calendar, RefreshCw, Settings, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Plus, RefreshCw, Settings, Trash2 } from "lucide-react";
 import { useAuth } from "../../../context/auth-context";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -169,21 +169,23 @@ export default function GeneralSettingsPage() {
           })}
         </div>
 
-        <form onSubmit={handleAddBucket} className="space-y-2">
+        <form onSubmit={handleAddBucket} className="flex items-center gap-2">
           <Input
             type="text"
             placeholder="New bucket name"
             value={newBucketName}
             onChange={(e) => setNewBucketName(e.target.value)}
             required
-            className="h-12 w-full rounded-xl border-zinc-800 bg-zinc-900 px-4 text-sm text-zinc-100 placeholder:text-zinc-500"
+            className="h-11 min-w-0 flex-1 rounded-xl border-zinc-800 bg-zinc-900 px-4 text-sm text-zinc-100 placeholder:text-zinc-500"
           />
           <Button
             type="submit"
             disabled={!newBucketName.trim() || savingBuckets}
-            className="h-12 w-full rounded-xl bg-blue-500 px-5 text-sm font-semibold text-black hover:bg-blue-600"
+            aria-label="Add bucket"
+            title="Add bucket"
+            className="h-11 w-11 shrink-0 rounded-xl bg-blue-500 p-0 text-black hover:bg-blue-600"
           >
-            {savingBuckets ? "Saving..." : "Add Bucket"}
+            <Plus className={savingBuckets ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
           </Button>
         </form>
       </section>
