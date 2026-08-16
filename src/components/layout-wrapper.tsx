@@ -36,7 +36,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
-    const shortcutPaths = new Set(["/transactions", "/statements", "/settings"]);
+    const shortcutPaths = new Set(["/add", "/transactions", "/statements", "/settings"]);
     const openShortcutPath = (url?: string) => {
       if (!url) return;
       try {

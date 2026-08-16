@@ -36,4 +36,16 @@
             android:targetClass="${applicationId}.MainActivity"
             android:data="https://offset-app.mihirnagda.in/settings" />
     </shortcut>
+    <shortcut
+        android:shortcutId="add_transaction"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add"
+        android:shortcutShortLabel="@string/shortcut_add"
+        android:shortcutLongLabel="@string/shortcut_add_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="${applicationId}"
+            android:targetClass="${applicationId}.MainActivity"
+            android:data="https://offset-app.mihirnagda.in/add" />
+    </shortcut>
 </shortcuts>

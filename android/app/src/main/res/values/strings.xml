@@ -10,4 +10,6 @@
     <string name="shortcut_statements_long">Open statements</string>
     <string name="shortcut_settings">Settings</string>
     <string name="shortcut_settings_long">Open settings</string>
+    <string name="shortcut_add">Add transaction</string>
+    <string name="shortcut_add_long">Add a transaction</string>
 </resources>
