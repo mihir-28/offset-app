@@ -12,7 +12,7 @@
   Track spending • Reconcile payments • Stay ahead of statement cycles
 </p>
 
-A modern, mobile-first Progressive Web App for tracking credit card liabilities across billing cycles.
+A modern, mobile-first app for tracking credit card liabilities across billing cycles, available as an installable Progressive Web App and an Android app.
 
 Offset was built to replace spreadsheet-based credit card tracking with a cleaner and faster workflow.
 
@@ -252,7 +252,7 @@ Quickly jump between years:
 
 ### Google Authentication
 
-Secure sign-in using Google.
+Secure sign-in using Google on the web/PWA and Android app.
 
 ### Progressive Web App
 
@@ -265,6 +265,16 @@ Features include:
 - Mobile-first experience
 - Home screen installation
 - Native app feel
+
+### Android App
+
+The Android build is packaged with Capacitor and uses the same web experience and Firebase account/database services as the PWA.
+
+Features include:
+
+- Installable Android app
+- Native Google sign-in bridge
+- Shared account and synced records
 
 ---
 
@@ -324,6 +334,8 @@ Features:
 - Billing Cycle Settings
 - Bucket Management
 - Sign Out
+- Account Deletion
+- Privacy Policy and Terms of Service
 
 ---
 
@@ -331,7 +343,7 @@ Features:
 
 ### Frontend
 
-- Next.js 15
+- Next.js 16
 - TypeScript
 - Tailwind CSS v4
 - Shadcn/UI
@@ -344,13 +356,19 @@ Features:
 
 - Firebase Authentication
 - Firestore Database
-- Firebase Storage
 
 ### PWA
 
 - Service Workers
 - Offline Support
 - Installable Experience
+
+### Android
+
+- Capacitor 8
+- Android Gradle build
+- Debug APK for device testing
+- Signed release AAB for Play distribution
 
 ---
 

@@ -18,6 +18,10 @@ const sections = [
     body: "We try to keep Offset available and working well, but the app may sometimes be unavailable because of maintenance, network issues, service outages, or changes outside our control.",
   },
   {
+    title: "Web and Android Apps",
+    body: "Offset is available as a web/PWA experience and an Android app. Features may vary by platform, and both versions require a supported device and network access for sign-in and cloud synchronization.",
+  },
+  {
     title: "No Financial or Legal Advice",
     body: "Offset helps organize information. It does not provide financial, accounting, tax, or legal advice. Decisions based on your records are your responsibility.",
   },
@@ -38,7 +42,7 @@ export default function TermsPage() {
         <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-[#111113]">
           <div className="border-b border-zinc-800/70 px-4 py-4">
             <h1 className="text-2xl font-extrabold tracking-tight text-white">Terms of Service</h1>
-            <p className="mt-2 text-xs text-zinc-500">Last updated: June 27, 2026</p>
+            <p className="mt-2 text-xs text-zinc-500">Last updated: August 16, 2026</p>
           </div>
           <div className="grid lg:grid-cols-2">
             {sections.map((section, index) => (

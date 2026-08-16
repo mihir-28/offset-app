@@ -7,7 +7,7 @@ const sections = [
   },
   {
     title: "Account Sign-In",
-    body: "You sign in with Google so Offset can keep your records connected to your account. We use your name, email address, and profile photo only to show your account inside the app.",
+    body: "You sign in with Google on the web or Android app so Offset can keep your records connected to your account. We receive your name, email address, profile photo, and account identifier from the sign-in provider to identify your account and show it inside the app.",
   },
   {
     title: "What Data Is Saved",
@@ -23,11 +23,15 @@ const sections = [
   },
   {
     title: "Data Sharing",
-    body: "We do not sell your data, rent your data, or share it with advertisers. Your data is used to run Offset and show your own records back to you.",
+    body: "We do not sell your data, rent your data, or share it with advertisers. Offset uses Google services for sign-in and Firebase services for authentication and database synchronization. These providers process data as needed to provide those services.",
+  },
+  {
+    title: "Android App",
+    body: "The Android app requests internet access to sign in and synchronize your records. It does not request access to your contacts, location, camera, microphone, or files as part of the app’s current functionality.",
   },
   {
     title: "Account Deletion",
-    body: "You can permanently delete your account from Settings > Account > Delete Account. This removes your profile, cards, transactions, and statements from Offset.",
+    body: "You can permanently delete your account from Settings > Account > Delete Account. This removes your profile, cards, transactions, and statements from Offset. Local cached copies may remain on a device until its app or browser storage is cleared.",
   },
   {
     title: "Contact",
@@ -42,7 +46,7 @@ export default function PrivacyPage() {
         <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-[#111113]">
           <div className="border-b border-zinc-800/70 px-4 py-4">
             <h1 className="text-2xl font-extrabold tracking-tight text-white">Privacy Policy</h1>
-            <p className="mt-2 text-xs text-zinc-500">Last updated: June 27, 2026</p>
+            <p className="mt-2 text-xs text-zinc-500">Last updated: August 16, 2026</p>
           </div>
           <div className="grid lg:grid-cols-2">
             {sections.map((section, index) => (
