@@ -43,3 +43,7 @@ next-env.d.ts
 service-account.json
 scripts/
 functions/node_modules/
+android/.idea/
+android/app/google-services.json
+android/keystore.properties
+android/*.jks
