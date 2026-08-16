@@ -18,8 +18,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   const { user, loading, cards } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const isPublicRoute = pathname === "/login" || pathname === "/privacy" || pathname === "/terms";
-  const isLegalRoute = pathname === "/privacy" || pathname === "/terms";
+  const isPublicRoute = pathname === "/login" || pathname === "/privacy" || pathname === "/terms" || pathname === "/data-deletion";
+  const isLegalRoute = pathname === "/privacy" || pathname === "/terms" || pathname === "/data-deletion";
 
   useEffect(() => {
     // Redirect authenticated users immediately; profile/card hydration can finish in the background.
