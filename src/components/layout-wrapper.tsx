@@ -3,6 +3,8 @@
 import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import { useAuth } from "../context/auth-context";
 import { Sidebar, BottomNav } from "./navigation";
 import { PwaRegistration } from "./pwa-register";
@@ -30,6 +32,39 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       router.replace("/login");
     }
   }, [user, loading, pathname, router, isPublicRoute]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const shortcutPaths = new Set(["/transactions", "/statements", "/settings"]);
+    const openShortcutPath = (url?: string) => {
+      if (!url) return;
+      try {
+        const path = new URL(url).pathname;
+        if (shortcutPaths.has(path) && path !== pathname) {
+          router.replace(path);
+        }
+      } catch {
+        // Ignore non-URL launch intents.
+      }
+    };
+
+    let disposed = false;
+    let removeListener: (() => void) | undefined;
+    App.getLaunchUrl().then((launch) => openShortcutPath(launch?.url));
+    App.addListener("appUrlOpen", ({ url }) => openShortcutPath(url)).then((listener) => {
+      if (disposed) {
+        listener.remove();
+      } else {
+        removeListener = () => listener.remove();
+      }
+    });
+
+    return () => {
+      disposed = true;
+      removeListener?.();
+    };
+  }, [pathname, router]);
 
   // Loading / Splash Screen
   if (loading) {

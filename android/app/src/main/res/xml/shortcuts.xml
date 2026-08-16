@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="transactions"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_transactions"
+        android:shortcutShortLabel="@string/shortcut_transactions"
+        android:shortcutLongLabel="@string/shortcut_transactions_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="${applicationId}"
+            android:targetClass="${applicationId}.MainActivity"
+            android:data="https://offset-app.mihirnagda.in/transactions" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="statements"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_statements"
+        android:shortcutShortLabel="@string/shortcut_statements"
+        android:shortcutLongLabel="@string/shortcut_statements_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="${applicationId}"
+            android:targetClass="${applicationId}.MainActivity"
+            android:data="https://offset-app.mihirnagda.in/statements" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_settings"
+        android:shortcutShortLabel="@string/shortcut_settings"
+        android:shortcutLongLabel="@string/shortcut_settings_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="${applicationId}"
+            android:targetClass="${applicationId}.MainActivity"
+            android:data="https://offset-app.mihirnagda.in/settings" />
+    </shortcut>
+</shortcuts>

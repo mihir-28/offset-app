@@ -4,4 +4,10 @@
     <string name="title_activity_main">Offset</string>
     <string name="package_name">com.afterthought.offset</string>
     <string name="custom_url_scheme">com.afterthought.offset</string>
+    <string name="shortcut_transactions">Transactions</string>
+    <string name="shortcut_transactions_long">Open transactions</string>
+    <string name="shortcut_statements">Statements</string>
+    <string name="shortcut_statements_long">Open statements</string>
+    <string name="shortcut_settings">Settings</string>
+    <string name="shortcut_settings_long">Open settings</string>
 </resources>
