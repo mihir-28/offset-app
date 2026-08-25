@@ -1,6 +1,6 @@
 # Billing reminders
 
-Offset uses browser Web Push. Reminders are sent per enabled device:
+Offset sends reminders per enabled device: browser Web Push for the PWA and Firebase Cloud Messaging (FCM) for Android.
 
 - 3 days before a card's billing cycle starts.
 - 1 day after bill generation.
@@ -15,6 +15,13 @@ npx web-push generate-vapid-keys
 ```
 
 Set the VAPID values plus Firebase Admin credentials from `.env.example`. `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is safe for the browser; never expose `VAPID_PRIVATE_KEY` or service-account credentials.
+
+For Android, add the Firebase project's `google-services.json` to `android/app/google-services.json`. The Android app ID must be `com.afterthought.offset`. This file is intentionally ignored by Git. When preparing an APK, run one web build and then sync native assets:
+
+```powershell
+npm run build
+npx cap sync android
+```
 
 Deploy the updated Firestore rules. Then schedule this command once daily, after 09:00 in `REMINDER_TIME_ZONE`:
 

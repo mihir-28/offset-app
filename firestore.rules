@@ -20,6 +20,10 @@ service cloud.firestore {
       match /pushSubscriptions/{subscriptionId} {
         allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
       }
+
+      match /nativePushTokens/{tokenId} {
+        allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+      }
     }
 
     match /cards/{cardId} {

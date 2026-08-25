@@ -62,14 +62,16 @@ async function deleteUserCollection(userId: string, collectionName: (typeof USER
   }
 }
 
-async function deletePushSubscriptions(userId: string) {
-  while (true) {
-    const snapshot = await getDocs(query(collection(db, "users", userId, "pushSubscriptions"), limit(400)));
-    if (snapshot.empty) return;
+async function deletePushDevices(userId: string) {
+  for (const collectionName of ["pushSubscriptions", "nativePushTokens"]) {
+    while (true) {
+      const snapshot = await getDocs(query(collection(db, "users", userId, collectionName), limit(400)));
+      if (snapshot.empty) break;
 
-    const batch = writeBatch(db);
-    snapshot.docs.forEach((document) => batch.delete(document.ref));
-    await batch.commit();
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((document) => batch.delete(document.ref));
+      await batch.commit();
+    }
   }
 }
 
@@ -219,7 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     for (const collectionName of USER_DATA_COLLECTIONS) {
       await deleteUserCollection(currentUser.uid, collectionName);
     }
-    await deletePushSubscriptions(currentUser.uid);
+    await deletePushDevices(currentUser.uid);
 
     await deleteDoc(doc(db, "users", currentUser.uid));
     await deleteUser(currentUser);
