@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Settings, User, Info, CreditCard, FileText, ShieldCheck } from "lucide-react";
+import { Bell, ChevronRight, Settings, User, Info, CreditCard, FileText, ShieldCheck } from "lucide-react";
 
 const settingsRows = [
     {
@@ -21,6 +21,12 @@ const settingsRows = [
         title: "General",
         description: "Buckets and billing cycle",
         icon: Settings,
+    },
+    {
+        href: "/settings/notifications",
+        title: "Notifications",
+        description: "Billing-cycle and payment reminders",
+        icon: Bell,
     },
     {
         href: "/settings/about",

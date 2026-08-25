@@ -14,7 +14,7 @@ import { Capacitor } from "@capacitor/core";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from "firebase/firestore";
 import { auth, db, isConfigValid } from "../lib/firebase";
-import { CardData, createCard, DEFAULT_BUCKETS, getCards, migrateCardsAndCycles, migrateLegacyPlaintextData, migrateUserDataToCard, updateCard } from "../lib/db-helpers";
+import { CardData, createCard, DEFAULT_BUCKETS, ensureCardNotificationMetadata, getCards, migrateCardsAndCycles, migrateLegacyPlaintextData, migrateUserDataToCard, updateCard } from "../lib/db-helpers";
 
 export interface UserProfile {
   id: string;
@@ -46,7 +46,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USER_DATA_COLLECTIONS = ["cards", "statementCycles", "transactions"] as const;
+const USER_DATA_COLLECTIONS = ["cards", "statementCycles", "transactions", "notificationDeliveries"] as const;
 
 async function deleteUserCollection(userId: string, collectionName: (typeof USER_DATA_COLLECTIONS)[number]) {
   while (true) {
@@ -54,6 +54,17 @@ async function deleteUserCollection(userId: string, collectionName: (typeof USER
       query(collection(db, collectionName), where("userId", "==", userId), limit(400))
     );
 
+    if (snapshot.empty) return;
+
+    const batch = writeBatch(db);
+    snapshot.docs.forEach((document) => batch.delete(document.ref));
+    await batch.commit();
+  }
+}
+
+async function deletePushSubscriptions(userId: string) {
+  while (true) {
+    const snapshot = await getDocs(query(collection(db, "users", userId, "pushSubscriptions"), limit(400)));
     if (snapshot.empty) return;
 
     const batch = writeBatch(db);
@@ -128,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await setDoc(userDocRef, { activeCardId: selectedCardId }, { merge: true });
           }
           await migrateCardsAndCycles(firebaseUser.uid, dbBuckets);
+          await ensureCardNotificationMetadata(firebaseUser.uid);
           setCards((await getCards(firebaseUser.uid)).filter((card) => !card.archived));
           setActiveCardId(selectedCardId || null);
           setProfile({
@@ -207,6 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     for (const collectionName of USER_DATA_COLLECTIONS) {
       await deleteUserCollection(currentUser.uid, collectionName);
     }
+    await deletePushSubscriptions(currentUser.uid);
 
     await deleteDoc(doc(db, "users", currentUser.uid));
     await deleteUser(currentUser);

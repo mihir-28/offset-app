@@ -134,12 +134,23 @@ export async function createCard(userId: string, name: string, cycleStartDay = 1
   const trimmedName = name.trim();
   if (!trimmedName) throw new Error("Card name is required.");
   const ref = doc(collection(db, "cards"));
-  await setDoc(ref, { id: ref.id, userId, archived: false, encryptedPayload: await encryptCardPayload(userId, trimmedName, cycleStartDay, buckets), encryptionVersion: 1, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  await setDoc(ref, { id: ref.id, userId, archived: false, notificationCycleStartDay: cycleStartDay, encryptedPayload: await encryptCardPayload(userId, trimmedName, cycleStartDay, buckets), encryptionVersion: 1, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
   return { id: ref.id, userId, name: trimmedName, cycleStartDay, buckets, archived: false };
 }
 
 export async function updateCard(userId: string, cardId: string, name: string, cycleStartDay: number, buckets = DEFAULT_BUCKETS): Promise<void> {
-  await updateDoc(doc(db, "cards", cardId), { encryptedPayload: await encryptCardPayload(userId, name.trim(), cycleStartDay, buckets), encryptionVersion: 1, updatedAt: serverTimestamp() });
+  await updateDoc(doc(db, "cards", cardId), { notificationCycleStartDay: cycleStartDay, encryptedPayload: await encryptCardPayload(userId, name.trim(), cycleStartDay, buckets), encryptionVersion: 1, updatedAt: serverTimestamp() });
+}
+
+export async function ensureCardNotificationMetadata(userId: string): Promise<void> {
+  const snap = await getDocs(query(collection(db, "cards"), where("userId", "==", userId)));
+  const cards = await Promise.all(snap.docs.map((card) => decryptCardDoc(card.data(), card.id)));
+
+  await Promise.all(cards.map(async (card, index) => {
+    if (snap.docs[index].data().notificationCycleStartDay !== card.cycleStartDay) {
+      await updateDoc(snap.docs[index].ref, { notificationCycleStartDay: card.cycleStartDay, updatedAt: serverTimestamp() });
+    }
+  }));
 }
 
 export async function archiveCard(cardId: string): Promise<void> {

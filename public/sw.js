@@ -1,4 +1,4 @@
-const CACHE_NAME = "offset-cache-v2";
+const CACHE_NAME = "offset-cache-v3";
 const ASSETS_TO_CACHE = [
   "/favicon.ico",
   "/icon.png",
@@ -97,8 +97,7 @@ self.addEventListener("push", (event) => {
         badge: "/icon.png",
         vibrate: [100, 50, 100],
         data: {
-          dateOfArrival: Date.now(),
-          primaryKey: "2",
+          url: data.url || "/statements",
         },
       };
       event.waitUntil(
@@ -114,4 +113,16 @@ self.addEventListener("push", (event) => {
       );
     }
   }
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = new URL(event.notification.data?.url || "/statements", self.location.origin).href;
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      const existingWindow = windows.find((windowClient) => windowClient.url === targetUrl);
+      return existingWindow ? existingWindow.focus() : clients.openWindow(targetUrl);
+    })
+  );
 });

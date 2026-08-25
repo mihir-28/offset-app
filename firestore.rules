@@ -16,6 +16,10 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+
+      match /pushSubscriptions/{subscriptionId} {
+        allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+      }
     }
 
     match /cards/{cardId} {
@@ -37,6 +41,10 @@ service cloud.firestore {
       allow read: if ownsExisting();
       allow update: if ownsExisting() && request.resource.data.userId == resource.data.userId;
       allow delete: if ownsExisting();
+    }
+
+    match /notificationDeliveries/{deliveryId} {
+      allow read, delete: if ownsExisting();
     }
   }
 }
