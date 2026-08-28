@@ -135,8 +135,9 @@ export default function NotificationSettingsPage() {
         registrationListener = await PushNotifications.addListener("registration", ({ value }) => {
           void cleanUp().then(() => resolve(value));
         });
-        errorListener = await PushNotifications.addListener("registrationError", ({ error }) => {
-          void cleanUp().then(() => reject(new Error(`FCM registration failed: ${error}`)));
+        errorListener = await PushNotifications.addListener("registrationError", (event) => {
+          const detail = typeof event?.error === "string" ? event.error : JSON.stringify(event);
+          void cleanUp().then(() => reject(new Error(`FCM registration failed: ${detail}`)));
         });
         timer = setTimeout(() => {
           void cleanUp().then(() => reject(new Error("FCM registration timed out. Check that Firebase Cloud Messaging API (V1) is enabled.")));
@@ -148,7 +149,11 @@ export default function NotificationSettingsPage() {
       }
     });
 
-    await saveNativeToken(token);
+    try {
+      await saveNativeToken(token);
+    } catch (cause) {
+      throw new Error(`Got FCM token but saving it failed: ${cause instanceof Error ? cause.message : String(cause)}`);
+    }
     setEnabled(true);
   };
 
@@ -218,7 +223,7 @@ export default function NotificationSettingsPage() {
       <div><h2 className="text-2xl font-bold text-white">Notifications</h2><p className="mt-1 text-xs text-zinc-500">Receive billing-cycle and bill-payment reminders on this device.</p></div>
       <section className="rounded-2xl border border-zinc-800 bg-[#111113] p-4">
         <div className="flex gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">{enabled ? <CheckCircle2 className="h-5 w-5" /> : <Bell className="h-5 w-5" />}</div><div><h3 className="text-sm font-bold text-zinc-100">Billing reminders</h3><p className="mt-1 text-xs leading-relaxed text-zinc-500">3 days before each cycle, then 1 and 10 days after bill generation.</p></div></div>
-        {error && <p role="alert" className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-300">{error}</p>}
+        {error && <p role="alert" className="mt-4 select-text rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs wrap-break-word whitespace-pre-wrap text-red-300">{error}</p>}
         {!loading && !supported && <p className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200">This device does not support push notifications.</p>}
         {!loading && supported && !configured && <p className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200">Notifications are not configured yet.</p>}
         <Button onClick={() => void (enabled ? disable() : enable())} disabled={loading || !supported || !configured || permission === "denied"} className="mt-4 h-10 w-full rounded-xl bg-blue-500 text-xs font-bold text-black hover:bg-blue-400 disabled:bg-zinc-800 disabled:text-zinc-500">
