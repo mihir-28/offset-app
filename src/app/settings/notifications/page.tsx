@@ -124,15 +124,23 @@ export default function NotificationSettingsPage() {
     const token = await new Promise<string>(async (resolve, reject) => {
       let registrationListener: PluginListenerHandle | undefined;
       let errorListener: PluginListenerHandle | undefined;
-      const cleanUp = async () => Promise.all([registrationListener?.remove(), errorListener?.remove()]);
+      // ponytail: FCM can go silent (Cloud Messaging API disabled) and never fire either event.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const cleanUp = async () => {
+        clearTimeout(timer);
+        return Promise.all([registrationListener?.remove(), errorListener?.remove()]);
+      };
 
       try {
         registrationListener = await PushNotifications.addListener("registration", ({ value }) => {
           void cleanUp().then(() => resolve(value));
         });
         errorListener = await PushNotifications.addListener("registrationError", ({ error }) => {
-          void cleanUp().then(() => reject(new Error(error)));
+          void cleanUp().then(() => reject(new Error(`FCM registration failed: ${error}`)));
         });
+        timer = setTimeout(() => {
+          void cleanUp().then(() => reject(new Error("FCM registration timed out. Check that Firebase Cloud Messaging API (V1) is enabled.")));
+        }, 20000);
         await PushNotifications.register();
       } catch (cause) {
         await cleanUp();
@@ -168,7 +176,9 @@ export default function NotificationSettingsPage() {
       console.error("Notification subscription failed:", cause);
       const denied = isNativeAndroid ? permission === "denied" : Notification.permission === "denied";
       if (!isNativeAndroid) setPermission(Notification.permission);
-      setError(denied ? "Notifications are blocked in device settings." : "Could not enable notifications. Please try again.");
+      setError(denied
+        ? "Notifications are blocked in device settings."
+        : `Could not enable notifications: ${cause instanceof Error ? cause.message : String(cause)}`);
     } finally {
       setLoading(false);
     }
