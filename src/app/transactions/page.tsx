@@ -10,7 +10,7 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { Search, Plus, Edit2, Trash2, Lock } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { cn } from "../../lib/utils";
+import { cn, formatINR } from "../../lib/utils";
 
 const getBucketColor = (bucketName: string) => {
   const themes = [
@@ -290,15 +290,15 @@ export default function TransactionsPage() {
           </div>
           <div className="flex items-center gap-4">
             <div>
-              Total: <span className="font-semibold text-zinc-200">₹{filteredTotalSpend.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+              Total: <span className="font-semibold text-zinc-200">₹{formatINR(filteredTotalSpend)}</span>
             </div>
             <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
             <div>
-              Deposits: <span className="font-semibold text-green-500">₹{filteredTotalDeposits.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+              Deposits: <span className="font-semibold text-green-500">₹{formatINR(filteredTotalDeposits)}</span>
             </div>
             <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
             <div>
-              Outstanding: <span className="font-bold text-blue-400">₹{filteredTotalOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
+              Outstanding: <span className="font-bold text-blue-400">₹{formatINR(filteredTotalOutstanding)}</span>
             </div>
           </div>
         </div>
@@ -355,11 +355,11 @@ export default function TransactionsPage() {
                   {/* Financial stats */}
                   <div className="text-right">
                     <p className="text-sm font-semibold text-zinc-200">
-                      ₹{tx.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      ₹{formatINR(tx.amount)}
                     </p>
                     {tx.deposit > 0 ? (
                       <p className="text-[10px] text-zinc-500 mt-0.5">
-                        Col: ₹{tx.deposit.toLocaleString("en-IN")} | Out: ₹{outstandingAmt.toLocaleString("en-IN")}
+                        Col: ₹{formatINR(tx.deposit)} | Out: ₹{formatINR(outstandingAmt)}
                       </p>
                     ) : (
                       <p className="text-[10px] text-zinc-500 mt-0.5">No deposit</p>

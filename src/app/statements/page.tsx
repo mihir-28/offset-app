@@ -8,7 +8,7 @@ import { getYearOptions } from "../../lib/cycle-utils";
 import { StatementCycleData, TransactionData, decryptTransactionDoc, decryptStatementCycleDoc } from "../../lib/db-helpers";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { ChevronRight, Calendar, Lock, Unlock} from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn, formatINR } from "../../lib/utils";
 
 import {
   Select,
@@ -230,7 +230,7 @@ export default function StatementsPage() {
                   <div className="text-right">
                     <p className="text-xs text-zinc-500 font-medium mb-0.5">Outstanding</p>
                     <p className="text-base font-bold text-zinc-100">
-                      ₹{c.outstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      ₹{formatINR(c.outstanding)}
                     </p>
                     <p className="text-[10px] text-zinc-500 mt-0.5">
                       {c.txCount} transaction(s)

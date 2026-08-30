@@ -9,7 +9,7 @@ import { doc, collection, query, where, onSnapshot } from "firebase/firestore";
 import { ArrowLeft, Lock, Unlock, Calendar, AlertCircle, ShieldCheck, ArrowUpRight, ArrowDownLeft, Receipt } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
-import { cn } from "../../../lib/utils";
+import { cn, formatINR } from "../../../lib/utils";
 
 const getBucketColor = (bucketName: string) => {
   const themes = [
@@ -259,7 +259,7 @@ export default function StatementDetailsPage() {
             <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
           <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-white tracking-tight truncate w-full">
-            ₹{totalSpend.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            ₹{formatINR(totalSpend)}
           </h3>
         </div>
 
@@ -269,7 +269,7 @@ export default function StatementDetailsPage() {
             <ArrowDownLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
           <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-green-500 tracking-tight truncate w-full">
-            ₹{totalDeposits.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            ₹{formatINR(totalDeposits)}
           </h3>
         </div>
 
@@ -279,7 +279,7 @@ export default function StatementDetailsPage() {
             <Receipt className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
           <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-blue-400 tracking-tight truncate w-full">
-            ₹{totalOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            ₹{formatINR(totalOutstanding)}
           </h3>
         </div>
       </div>
@@ -315,19 +315,19 @@ export default function StatementDetailsPage() {
                 <div className="flex justify-between items-baseline">
                   <span className="text-xs text-zinc-400">Total Spend</span>
                   <span className="text-sm font-medium text-zinc-200">
-                    ₹{b.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    ₹{formatINR(b.total)}
                   </span>
                 </div>
                 <div className="flex justify-between items-baseline">
                   <span className="text-xs text-zinc-400">Deposits Received</span>
                   <span className="text-sm font-medium text-green-500">
-                    ₹{b.deposits.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    ₹{formatINR(b.deposits)}
                   </span>
                 </div>
                 <div className="flex justify-between items-baseline border-t border-zinc-800/30 pt-3">
                   <span className="text-xs font-semibold text-zinc-300">Outstanding</span>
                   <span className={cn("text-base font-bold", colors.text)}>
-                    ₹{b.outstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    ₹{formatINR(b.outstanding)}
                   </span>
                 </div>
               </div>
@@ -377,11 +377,11 @@ export default function StatementDetailsPage() {
 
                   <div className="relative z-10 text-right">
                     <p className="text-sm font-semibold text-zinc-200">
-                      ₹{tx.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      ₹{formatINR(tx.amount)}
                     </p>
                     {tx.deposit > 0 && (
                       <p className="text-[10px] text-zinc-500 mt-0.5">
-                        Collected: ₹{tx.deposit.toLocaleString("en-IN")} | Outstanding: ₹{outstandingAmt.toLocaleString("en-IN")}
+                        Collected: ₹{formatINR(tx.deposit)} | Outstanding: ₹{formatINR(outstandingAmt)}
                       </p>
                     )}
                   </div>
