@@ -14,8 +14,9 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Calendar } from "../../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
-import { cn } from "../../lib/utils";
+import { cn, formatINR } from "../../lib/utils";
 import { evaluateAmountExpression } from "../../lib/calculator";
+import { AmountInput } from "../../components/amount-input";
 
 const getBucketColor = (bucketName: string) => {
   const themes = [
@@ -300,13 +301,11 @@ export default function AddTransactionPage() {
             <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
               Amount (₹)
             </label>
-            <Input
-              type="text"
-              inputMode="decimal"
+            <AmountInput
               placeholder="100+50*2"
               value={amountExpression}
-              onChange={(event) => {
-                setAmountExpression(event.target.value);
+              onValueChange={(next) => {
+                setAmountExpression(next);
                 setAmountExpressionError("");
               }}
               onBlur={() => {
@@ -388,7 +387,7 @@ export default function AddTransactionPage() {
           </div>
           <div className="text-right">
             <span className="text-2xl font-extrabold text-blue-400">
-              ₹{outstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              ₹{formatINR(outstanding)}
             </span>
           </div>
         </div>

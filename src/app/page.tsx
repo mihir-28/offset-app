@@ -17,8 +17,9 @@ import { Edit2, Trash2, ShieldCheck, ShieldAlert, ArrowUpRight, ArrowDownLeft, R
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { addTransaction } from "../lib/db-helpers";
-import { cn } from "../lib/utils";
+import { cn, formatINR } from "../lib/utils";
 import { evaluateAmountExpression } from "../lib/calculator";
+import { AmountInput } from "../components/amount-input";
 
 const getBucketColor = (bucketName: string) => {
   const themes = [
@@ -293,7 +294,7 @@ export default function Dashboard() {
               <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-white tracking-tight truncate w-full">
-              ₹{totalSpend.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              ₹{formatINR(totalSpend)}
             </h3>
           </div>
 
@@ -303,7 +304,7 @@ export default function Dashboard() {
               <ArrowDownLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-green-500 tracking-tight truncate w-full">
-              ₹{totalDeposits.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              ₹{formatINR(totalDeposits)}
             </h3>
           </div>
 
@@ -313,7 +314,7 @@ export default function Dashboard() {
               <Receipt className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <h3 className="text-xs sm:text-base md:text-xl font-extrabold text-blue-400 tracking-tight truncate w-full">
-              ₹{totalOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              ₹{formatINR(totalOutstanding)}
             </h3>
           </div>
         </div>
@@ -349,19 +350,19 @@ export default function Dashboard() {
                   <div className="flex justify-between items-baseline">
                     <span className="text-xs text-zinc-400">Total Spend</span>
                     <span className="text-base font-semibold text-zinc-200">
-                      ₹{b.total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      ₹{formatINR(b.total)}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-xs text-zinc-400">Deposits Received</span>
                     <span className="text-base font-semibold text-green-500">
-                      ₹{b.deposits.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      ₹{formatINR(b.deposits)}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline border-t border-zinc-800/30 pt-3">
                     <span className="text-xs font-semibold text-zinc-300">Outstanding</span>
                     <span className={cn("text-lg font-bold", colors.text)}>
-                      ₹{b.outstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      ₹{formatINR(b.outstanding)}
                     </span>
                   </div>
                 </div>
@@ -419,11 +420,11 @@ export default function Dashboard() {
                       {/* Financial info */}
                       <div className="text-right">
                         <p className="text-sm font-semibold text-zinc-200">
-                          ₹{tx.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          ₹{formatINR(tx.amount)}
                         </p>
                         {tx.deposit > 0 && (
                           <p className="text-[10px] text-zinc-500">
-                            Collected: ₹{tx.deposit} | Out: ₹{outstandingAmt}
+                            Collected: ₹{formatINR(tx.deposit)} | Out: ₹{formatINR(outstandingAmt)}
                           </p>
                         )}
                       </div>
@@ -485,12 +486,10 @@ export default function Dashboard() {
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
                   Amount (₹)
                 </label>
-                <Input
-                  type="text"
-                  inputMode="decimal"
+                <AmountInput
                   value={quickAmount}
-                  onChange={(e) => {
-                    setQuickAmount(e.target.value);
+                  onValueChange={(next) => {
+                    setQuickAmount(next);
                     setQuickAmountError("");
                   }}
                   onBlur={() => {
@@ -561,7 +560,7 @@ export default function Dashboard() {
                 <span className="font-semibold text-blue-400">
                   ₹{(() => {
                     try {
-                      return Math.max(0, evaluateAmountExpression(quickAmount) - (Number(quickDeposit) || 0)).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+                      return formatINR(Math.max(0, evaluateAmountExpression(quickAmount) - (Number(quickDeposit) || 0)));
                     } catch {
                       return "0.00";
                     }
